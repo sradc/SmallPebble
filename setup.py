@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="smallpebble",
-    version="0.1.0",
+    version="0.1.1",
     author="Sidney Radcliffe",
     author_email="sidneyradcliffe@gmail.com",
     description="Minimal automatic differentiation implementation in Python, NumPy.",
