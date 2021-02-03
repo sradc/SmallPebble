@@ -1,5 +1,8 @@
 # SmallPebble
 
+<br><br>
+<div style="text-align:center"><img src="pebbles.jpg" /></div>
+<br><br>
 
 Minimal automatic differentiation implementation in Python, NumPy.
 
