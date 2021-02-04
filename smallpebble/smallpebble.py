@@ -28,7 +28,7 @@ Features:
 from collections import defaultdict
 import math
 import numpy as np
-
+import numpy.lib.stride_tricks as stride_tricks
 
 # ----------------
 # ---------------- AUTOMATIC DIFFERENTIATION
@@ -87,6 +87,13 @@ def add_at(a, indices, b):
         (a, lambda path_value: path_value),
         (b, lambda path_value: getitem(path_value, indices)),
     )
+    return Variable(value, local_gradients)
+
+
+def bincount(idx, a, size):
+    "Faster than `add.at`... `idx`: flat NumPy array , `a` flat Variable, `size` int."
+    value = np.bincount(idx, a.array, minlength=size)
+    local_gradients = ((a, lambda path_value: getitemflat(path_value, idx)),)
     return Variable(value, local_gradients)
 
 
@@ -149,6 +156,13 @@ def getitem(a, indices):
         return add_at(result, indices, path_value)
 
     local_gradients = ((a, multiply_by_locgrad),)
+    return Variable(value, local_gradients)
+
+
+def getitemflat(a, idx):
+    "`a` is flat, `idx` is row major (and flat)."
+    value = a.array[idx]
+    local_gradients = ((a, lambda path_value: bincount(idx, path_value, a.array.size)),)
     return Variable(value, local_gradients)
 
 
@@ -239,6 +253,23 @@ def setat(a, indices, b):
         return getitem(path_value, indices)
 
     local_gradients = ((a, multiply_by_locgrad_a), (b, multiply_by_locgrad_b))
+    return Variable(value, local_gradients)
+
+
+def sliding_window_view(a, window_shape):
+    value = stride_tricks.sliding_window_view(a.array, window_shape)
+
+    def multiply_by_locgrad(path_value):
+        # this is generally quicker than add.at ..
+        idx = np.arange(a.array.size).reshape(a.array.shape)
+        idx = stride_tricks.sliding_window_view(idx, window_shape)
+        idx = idx.reshape(-1)
+
+        path_value = reshape(path_value, (-1))
+        return reshape(bincount(idx, path_value, a.array.size), a.array.shape)
+
+    local_gradients = ((a, multiply_by_locgrad),)
+
     return Variable(value, local_gradients)
 
 
