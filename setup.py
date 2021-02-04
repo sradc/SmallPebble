@@ -14,9 +14,7 @@ setuptools.setup(
     url="https://github.com/sradc/smallpebble",
     license="Apache License 2.0",
     packages=setuptools.find_packages(),
-    install_requires=[
-        "numpy",
-    ],
+    install_requires=["numpy>=1.20.0",],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
