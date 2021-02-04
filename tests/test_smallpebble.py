@@ -2,6 +2,7 @@
 Test first and second derivatives of autodiff against numerical diff.
 """
 import numpy as np
+import numpy.lib.stride_tricks as stride_tricks
 import tensorflow as tf
 import smallpebble as sp
 
@@ -83,6 +84,31 @@ def test_add_at():
     num_grads = numgrads(func, args, n=1, delta=1)
     num_grads2 = numgrads(func, args, n=2, delta=1)
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
+
+    for spval, numval in zip(sp_results, num_results):
+        error = rmsq(spval.array, numval)
+        assert error < EPS, f"rmse = {error}"
+
+
+def test_bincount():
+    np.random.seed(0)
+
+    size = 34
+    a = sp.Variable(np.random.random(size))
+    idx = np.arange(size)
+    y = sp.bincount(idx, a, size)
+    grads = sp.get_gradients(y)
+    grad_a_2nd = sp.get_gradients(grads[a])[a]
+    sp_results = [y, grads[a], grad_a_2nd]
+
+    def func(a):
+        return np.bincount(idx, a, minlength=size)
+
+    y_np = func(a.array)
+    args = [a.array]
+    num_grads = numgrads(func, args, n=1, delta=1)
+    num_grads2 = numgrads(func, args, n=2, delta=1)
+    num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
         error = rmsq(spval.array, numval)
@@ -175,6 +201,31 @@ def test_getitem():
 
     def func(a):
         return a[indices]
+
+    y_np = func(a.array)
+    args = [a.array]
+    num_grads = numgrads(func, args, n=1, delta=1)
+    num_grads2 = numgrads(func, args, n=2, delta=1)
+    num_results = [y_np, num_grads[0], num_grads2[0]]
+
+    for spval, numval in zip(sp_results, num_results):
+        error = rmsq(spval.array, numval)
+        assert error < EPS, f"rmse = {error}"
+
+
+def test_getitemflat():
+    np.random.seed(0)
+
+    size = 34
+    a = sp.Variable(np.random.random(size))
+    idx = np.arange(size)
+    y = sp.getitemflat(a, idx)
+    grads = sp.get_gradients(y)
+    grad_a_2nd = sp.get_gradients(grads[a])[a]
+    sp_results = [y, grads[a], grad_a_2nd]
+
+    def func(a):
+        return a[idx]
 
     y_np = func(a.array)
     args = [a.array]
@@ -427,6 +478,30 @@ def test_setat():
         result = a.copy()
         result[indices] = 5
         return result
+
+    y_np = func(a.array)
+    args = [a.array]
+    num_grads = numgrads(func, args, n=1, delta=1)
+    num_grads2 = numgrads(func, args, n=2, delta=1)
+    num_results = [y_np, num_grads[0], num_grads2[0]]
+
+    for spval, numval in zip(sp_results, num_results):
+        error = rmsq(spval.array, numval)
+        assert error < EPS, f"rmse = {error}"
+
+
+def test_sliding_window_view():
+
+    a = sp.Variable(np.random.random([2, 5, 5, 2]))
+    window_shape = (1, 2, 2, 2)
+    y = sp.sliding_window_view(a, window_shape)
+
+    grads = sp.get_gradients(y)
+    grad_a_2nd = sp.get_gradients(grads[a])[a]
+    sp_results = [y, grads[a], grad_a_2nd]
+
+    def func(a):
+        return stride_tricks.sliding_window_view(a, window_shape)
 
     y_np = func(a.array)
     args = [a.array]
@@ -739,4 +814,3 @@ def numgrad(func, a, delta=1e-6):
 def rmsq(a: np.ndarray, b: np.ndarray):
     "Root mean square error."
     return np.sqrt(np.mean((a - b) ** 2))
-
