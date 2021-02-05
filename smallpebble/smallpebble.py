@@ -372,18 +372,9 @@ def conv2d(images, kernels, padding="SAME", strides=[1, 1]):
     kernheight, kernwidth, channels_in, channels_out = kernels.array.shape
     stride_y, stride_x = strides
 
-    if padding == "SAME":
-        pad_top, pad_bottom = pad_amounts(imheight, stride_y, kernheight)
-        pad_left, pad_right = pad_amounts(imwidth, stride_x, kernwidth)
-        images = pad(
-            images,
-            pad_width=[(0, 0), (pad_top, pad_bottom), (pad_left, pad_right), (0, 0),],
-        )
-        _, imheight, imwidth, _ = images.array.shape
-    elif padding == "VALID":
-        pass
-    else:
-        raise ValueError("padding must be 'SAME' or 'VALID'.")
+    images, imheight, imwidth = pad2d(
+        images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
+    )
 
     # Index to get the image patches:
     index_of_patches, outheight, outwidth, n_patches = patches_index(
@@ -413,7 +404,21 @@ def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]):
     """Maxpooling on a `Variable` of shape [n_images, imheight, imwidth, n_channels]."""
     n_images, imheight, imwidth, n_channels = images.array.shape
     stride_y, stride_x = strides
+    images, imheight, imwidth = pad2d(
+        images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
+    )
+    index_of_patches, outheight, outwidth, n_patches = patches_index(
+        imheight, imwidth, kernheight, kernwidth, stride_y, stride_x
+    )
+    patches = getitem(
+        images, (slice(None), index_of_patches[0], index_of_patches[1], slice(None)),
+    )
+    patches_max = maxax(patches, axis=2)
+    return reshape(patches_max, [n_images, outheight, outwidth, n_channels])
 
+
+def pad2d(images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth):
+    """Pad `images` for conv2d, maxpool2d."""
     if padding == "SAME":
         pad_top, pad_bottom = pad_amounts(imheight, stride_y, kernheight)
         pad_left, pad_right = pad_amounts(imwidth, stride_x, kernwidth)
@@ -426,15 +431,7 @@ def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]):
         pass
     else:
         raise ValueError("padding must be 'SAME' or 'VALID'.")
-
-    index_of_patches, outheight, outwidth, n_patches = patches_index(
-        imheight, imwidth, kernheight, kernwidth, stride_y, stride_x
-    )
-    patches = getitem(
-        images, (slice(None), index_of_patches[0], index_of_patches[1], slice(None)),
-    )
-    patches_max = maxax(patches, axis=2)
-    return reshape(patches_max, [n_images, outheight, outwidth, n_channels])
+    return images, imheight, imwidth
 
 
 # ---------------- UTIL
