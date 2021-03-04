@@ -2,9 +2,6 @@ import pathlib
 import setuptools
 import smallpebble
 
-requirements = pathlib.Path("requirements.txt").read_text()
-requirements = [r for r in requirements.split("\n") if r]
-
 setuptools.setup(
     name="smallpebble",
     version=smallpebble.__version__,
@@ -16,7 +13,7 @@ setuptools.setup(
     url="https://github.com/sradc/smallpebble",
     license="Apache License 2.0",
     packages=setuptools.find_packages(),
-    install_requires=requirements,
+    install_requires=["numpy>=1.20.0"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
