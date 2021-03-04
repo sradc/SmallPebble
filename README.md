@@ -1,10 +1,12 @@
 # SmallPebble
 
-<br><br>
+[![](https://github.com/sradc/smallpebble/workflows/Python%20package/badge.svg)](https://github.com/sradc/smallpebble/commits/)
+
+<br>
 <p align="center">
 <img src="pebbles.jpg" />
 </p>
-<br><br>
+<br>
 
 Minimal automatic differentiation implementation in Python, NumPy.
 
