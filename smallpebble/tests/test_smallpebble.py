@@ -1,5 +1,7 @@
-"""
-Test first and second derivatives of autodiff against numerical diff.
+"""Tests for SmallPebble.
+
+These tests will generally compare the first and second 
+derivatives from SmallPebble's autodiff against numerical derivatives.
 """
 import numpy as np
 import numpy.lib.stride_tricks as stride_tricks
