@@ -28,7 +28,7 @@ Features:
 from collections import defaultdict
 import math
 import numpy as np
-import numpy.lib.stride_tricks as stride_tricks
+
 
 # ----------------
 # ---------------- AUTOMATIC DIFFERENTIATION
@@ -257,12 +257,12 @@ def setat(a, indices, b):
 
 
 def sliding_window_view(a, window_shape):
-    value = stride_tricks.sliding_window_view(a.array, window_shape)
+    value = np.lib.stride_tricks.sliding_window_view(a.array, window_shape)
 
     def multiply_by_locgrad(path_value):
         # this is generally quicker than add.at ..
         idx = np.arange(a.array.size).reshape(a.array.shape)
-        idx = stride_tricks.sliding_window_view(idx, window_shape)
+        idx = np.lib.stride_tricks.sliding_window_view(idx, window_shape)
         idx = idx.reshape(-1)
 
         path_value = reshape(path_value, (-1))
