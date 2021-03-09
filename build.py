@@ -2,18 +2,23 @@
 import pathlib
 import shutil
 import subprocess
+import pytest
+from smallpebble.tests import run_tests
 
 root = pathlib.Path(__file__).parent
+
+# Check tests pass:
+print("Checking that all tests pass.")
+exit_code = run_tests(["-x"])
+assert exit_code != pytest.ExitCode.TESTS_FAILED, "Aborting build, due to failed test."
 
 # Delete old 'dist' folder, where distribution is located.
 dist_dir = root / "dist"
 if dist_dir.is_dir():
     shutil.rmtree(dist_dir)
-assert not dist_dir.is_dir(), 'Failed to delete old distribution directory.'
+assert not dist_dir.is_dir(), "Failed to delete old distribution directory."
 
-# Build to distribution.
-subprocess.run(
-    ["python", "setup.py", "sdist", "bdist_wheel"], cwd=root
-)
+# Build dist.
+subprocess.run(["python", "setup.py", "sdist", "bdist_wheel"], cwd=root)
 
-# Submit to pypi with: twine upload dist/*
+# Finally, submit to pypi with: twine upload dist/*
