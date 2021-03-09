@@ -3,13 +3,12 @@ import pathlib
 import shutil
 import subprocess
 import pytest
-from smallpebble.tests import run_tests
+import smallpebble.tests
 
 root = pathlib.Path(__file__).parent
 
 # Check tests pass:
-print("Checking that all tests pass.")
-exit_code = run_tests(["-x"])
+exit_code = smallpebble.tests.run_tests(["-x"])
 assert exit_code != pytest.ExitCode.TESTS_FAILED, "Aborting build, due to failed test."
 
 # Delete old 'dist' folder, where distribution is located.
