@@ -27,7 +27,30 @@ Features:
 """
 from collections import defaultdict
 import math
-import numpy as np
+import numpy
+
+
+# ---------------- Enable switching between NumPy and CuPy dynamically.
+
+
+array_library = numpy
+
+
+class ArrayLibraryProxy:
+    """Enable dynamic switching between NumPy and CuPy.
+    
+    E.g.
+    import smallpebble as sp
+    import cupy
+
+    sp.array_library = cupy
+    """
+
+    def __getattribute__(self, name):
+        return getattr(array_library, name)
+
+
+np = ArrayLibraryProxy()
 
 
 # ----------------
