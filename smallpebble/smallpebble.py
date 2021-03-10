@@ -279,23 +279,6 @@ def setat(a, indices, b):
     return Variable(value, local_gradients)
 
 
-def sliding_window_view(a, window_shape):
-    value = np.lib.stride_tricks.sliding_window_view(a.array, window_shape)
-
-    def multiply_by_locgrad(path_value):
-        # this is generally quicker than add.at ..
-        idx = np.arange(a.array.size).reshape(a.array.shape)
-        idx = np.lib.stride_tricks.sliding_window_view(idx, window_shape)
-        idx = idx.reshape(-1)
-
-        path_value = reshape(path_value, (-1))
-        return reshape(bincount(idx, path_value, a.array.size), a.array.shape)
-
-    local_gradients = ((a, multiply_by_locgrad),)
-
-    return Variable(value, local_gradients)
-
-
 def square(a):
     "Square each element of `a`"
     value = np.square(a.array)
@@ -555,4 +538,21 @@ def getitemflat(a, idx):
     """
     value = a.array[idx]
     local_gradients = ((a, lambda path_value: bincount(idx, path_value, a.array.size)),)
+    return Variable(value, local_gradients)
+
+
+def sliding_window_view(a, window_shape):
+    value = np.lib.stride_tricks.sliding_window_view(a.array, window_shape)
+
+    def multiply_by_locgrad(path_value):
+        # this is generally quicker than add.at ..
+        idx = np.arange(a.array.size).reshape(a.array.shape)
+        idx = np.lib.stride_tricks.sliding_window_view(idx, window_shape)
+        idx = idx.reshape(-1)
+
+        path_value = reshape(path_value, (-1))
+        return reshape(bincount(idx, path_value, a.array.size), a.array.shape)
+
+    local_gradients = ((a, multiply_by_locgrad),)
+
     return Variable(value, local_gradients)
