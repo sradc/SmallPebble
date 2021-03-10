@@ -127,13 +127,6 @@ def add_at(a, indices, b):
     return Variable(value, local_gradients)
 
 
-def bincount(idx, a, size):
-    "Faster than `add.at`... `idx`: flat NumPy array , `a` flat Variable, `size` int."
-    value = np.bincount(idx, a.array, minlength=size)
-    local_gradients = ((a, lambda path_value: getitemflat(path_value, idx)),)
-    return Variable(value, local_gradients)
-
-
 def div(a, b):
     "Elementwise division."
     value = a.array / b.array
@@ -193,13 +186,6 @@ def getitem(a, indices):
         return add_at(result, indices, path_value)
 
     local_gradients = ((a, multiply_by_locgrad),)
-    return Variable(value, local_gradients)
-
-
-def getitemflat(a, idx):
-    "`a` is flat, `idx` is row major (and flat)."
-    value = a.array[idx]
-    local_gradients = ((a, lambda path_value: bincount(idx, path_value, a.array.size)),)
     return Variable(value, local_gradients)
 
 
@@ -525,11 +511,41 @@ Variable.__mul__ = mul
 Variable.__sub__ = sub
 Variable.__truediv__ = div
 
-# Indexing:
+# Indexing (no __setitem__, use `setat` instead):
 Variable.__getitem__ = getitem
-# No __setitem__, use `setat`.
 
 # Useful attributes:
 Variable.dtype = property(lambda self: self.array.dtype)
 Variable.ndim = property(lambda self: self.array.ndim)
 Variable.shape = property(lambda self: self.array.shape)
+
+
+# ----------------
+# ---------------- DEPRECATED
+# ----------------
+# May or may not be removed at some point. Moved here to reduce noise.
+
+
+def bincount(idx, a, size):
+    """Faster than `np.add.at`. `idx`: flat NumPy array , `a` flat Variable, `size` int.
+    
+    Deprecation reason:
+    add.at is the function we want really.
+    Although bincount is faster when using numpy, it probably isn't worth the obfuscation.
+    Also, CuPy doesn't benefit from the bincount version of add.at,
+    since cupy.scatter_add is faster.
+    """
+    value = np.bincount(idx, a.array, minlength=size)
+    local_gradients = ((a, lambda path_value: getitemflat(path_value, idx)),)
+    return Variable(value, local_gradients)
+
+
+def getitemflat(a, idx):
+    """`a` is flat, `idx` is row major (and flat).
+    
+    Deprecation reason:
+    This is the sister function of `sp.bincount`, and is deprecated for the same reason.
+    """
+    value = a.array[idx]
+    local_gradients = ((a, lambda path_value: bincount(idx, path_value, a.array.size)),)
+    return Variable(value, local_gradients)
