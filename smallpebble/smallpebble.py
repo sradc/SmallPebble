@@ -397,17 +397,22 @@ def conv2d(images, kernels, padding="SAME", strides=[1, 1]):
     images, imheight, imwidth = padding2d(
         images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
     )
-    window_shape = (1, kernheight, kernwidth, channels_in)
-    image_patches = sliding_window_view(images, window_shape)[:, ::stride_y, ::stride_x, :]
-    outh, outw = image_patches.shape[1], image_patches.shape[2]
+    # Index to get the image patches:
+    index_of_patches, outheight, outwidth, n_patches = patches_index(
+        imheight, imwidth, kernheight, kernwidth, stride_y, stride_x
+    )
+    #  Extract patches, and reshape so can matrix multiply.
+    patches = getitem(
+        images, (slice(None), index_of_patches[0], index_of_patches[1], slice(None)),
+    )
     patches_as_matrix = reshape(
-        image_patches, [n_images * outh * outw, kernheight * kernwidth * channels_in]
+        patches, [n_images * n_patches, kernheight * kernwidth * channels_in]
     )
     kernels_as_matrix = reshape(
         kernels, [kernheight * kernwidth * channels_in, channels_out]
     )
     result = matmul(patches_as_matrix, kernels_as_matrix)
-    return reshape(result, [n_images, outh, outw, channels_out])
+    return reshape(result, [n_images, outheight, outwidth, channels_out])
 
 
 def lrelu(a, alpha=0.02):
@@ -421,12 +426,14 @@ def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]):
     images, imheight, imwidth = padding2d(
         images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
     )
-    window_shape = (1, kernheight, kernwidth, 1)
-    image_patches = sliding_window_view(images, window_shape)[:, ::stride_y, ::stride_x, :]
-    flat_patches_shape = image_patches.array.shape[:4] + (-1,)
-    image_patches = reshape(image_patches, shape=flat_patches_shape)
-    result = maxax(image_patches, axis=-1)
-    return reshape(result, result.array.shape[:-1])
+    index_of_patches, outheight, outwidth, n_patches = patches_index(
+        imheight, imwidth, kernheight, kernwidth, stride_y, stride_x
+    )
+    patches = getitem(
+        images, (slice(None), index_of_patches[0], index_of_patches[1], slice(None)),
+    )
+    patches_max = maxax(patches, axis=2)
+    return reshape(patches_max, [n_images, outheight, outwidth, n_channels])
 
 
 def padding2d(
