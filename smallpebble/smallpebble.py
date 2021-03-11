@@ -514,11 +514,13 @@ Variable.shape = property(lambda self: self.array.shape)
 # ---------------- DELAYED GRAPH EXECUTION
 # ----------------
 # For building NNs.
+# A delayed execution graph (DEG) is only evaluated when .run() is called
+# on one of the nodes.
 
 
 class Operation:
-    """A delayed graph node, consisting of an operation and the child nodes
-    it is to be applied to.
+    """A delayed graph node, consisting of an operation (`function`) and the child nodes
+    (`arguments`) that the operation is to be applied to.
     """
 
     def __init__(self, function, arguments):
@@ -561,6 +563,30 @@ class Placeholder(Operation):
     def run(self):
         assert self.arguments, f"Placeholder {self} hasn't been assigned a value."
         return super().run()
+
+
+# ---------------- TRAINING - HELPER FUNCTIONS
+# To make training parameters in delayed execution graphs easier.
+
+
+def learnable(variable):
+    "Flag `variable` as learnable."
+    variable.is_learnable = True
+    return variable
+
+
+def get_learnables(node):
+    "Get `variables` where is_learnable=True from a delayed execution graph."
+    learnable_vars = []
+
+    def find_learnables(node):
+        for child in getattr(node, "arguments", []):
+            if getattr(child, "is_learnable", False):
+                learnable_vars.append(child)
+            find_learnables(child)
+
+    find_learnables(node)
+    return learnable_vars
 
 
 # ----------------

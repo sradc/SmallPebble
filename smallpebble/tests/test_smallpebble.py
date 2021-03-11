@@ -759,6 +759,27 @@ def test_operation_and_placeholder_gradients():
         assert error < EPS, f"rmse = {error}"
 
 
+# ---------------- TRAINING - HELPER FUNCTIONS
+
+
+def test_learnable_and_get_learnables():
+    """Test that sp.get_learnables correctly obtains 
+    sp.Variables that have been flagged by sp.learnable().
+    """
+    param_1 = sp.learnable(sp.Variable(np.array(5)))
+    param_2 = sp.learnable(sp.Variable(np.array(10)))
+
+    a = sp.Placeholder()
+    b = sp.Placeholder()
+    c = sp.Operation(sp.matmul, [a, b])
+    y = sp.Operation(sp.mul, [c, param_1])
+    y = sp.Operation(sp.add, [y, param_2])
+
+    params = sp.get_learnables(y)
+
+    assert params == [param_1, param_2], "Did not get params."
+
+
 # ---------------- UTILS
 
 
