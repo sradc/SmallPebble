@@ -706,7 +706,60 @@ def test_magic_getitem():
         assert error < EPS, f"rmse = {error}"
 
 
-# ---------------- TEST UTILS
+# ---------------- TEST DELAYED GRAPH EXECUTION
+
+
+def test_operation_and_placeholder_result():
+    a_array = np.ones([10, 5])
+    b_array = np.ones([5, 10])
+
+    a = sp.Placeholder()
+    b = sp.Placeholder()
+    c = sp.Operation(sp.matmul, [a, b])
+    d = sp.Operation(sp.mul, [c, sp.Variable(np.array(5))])
+
+    a.assign_value(sp.Variable(a_array))
+    b.assign_value(sp.Variable(b_array))
+
+    result = d.run()  # runs the graph
+
+    assert np.all(result.array - np.matmul(a_array, b_array) * 5) == 0, "invalid result"
+
+
+def test_operation_and_placeholder_gradients():
+    a_array = np.ones([10, 5])
+    b_array = np.ones([5, 10])
+    a_sp = sp.Variable(a_array)
+    b_sp = sp.Variable(b_array)
+
+    a = sp.Placeholder()
+    b = sp.Placeholder()
+    y = sp.Operation(sp.matmul, [a, b])
+
+    a.assign_value(a_sp)
+    b.assign_value(b_sp)
+    result = y.run()
+
+    grads = sp.get_gradients(result)
+    grad_a_2nd = sp.get_gradients(grads[a_sp])[a_sp]
+    grad_b_2nd = sp.get_gradients(grads[b_sp])[b_sp]
+    sp_results = [result, grads[a_sp], grads[b_sp], grad_a_2nd, grad_b_2nd]
+
+    def func(a, b):
+        return np.matmul(a, b)
+
+    y_np = func(a_array, b_array)
+    args = [a_array, b_array]
+    num_grads = numgrads(func, args, n=1, delta=1)
+    num_grads2 = numgrads(func, args, n=2, delta=1)
+    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
+
+    for spval, numval in zip(sp_results, num_results):
+        error = rmsq(spval.array, numval)
+        assert error < EPS, f"rmse = {error}"
+
+
+# ---------------- UTILS
 
 
 def numgrads(func, args, n=1, delta=1e-6):

@@ -511,6 +511,59 @@ Variable.shape = property(lambda self: self.array.shape)
 
 
 # ----------------
+# ---------------- DELAYED GRAPH EXECUTION
+# ----------------
+# For building NNs.
+
+
+class Operation:
+    """A delayed graph node, consisting of an operation and the child nodes
+    it is to be applied to.
+    """
+
+    def __init__(self, function, arguments):
+        """Create a delayed graph node.
+        
+        Args:
+            function: A function that takes SmallPebble variables as arguments.
+            arguments: A list of nodes that `function` will take as input.
+            Elements of arguments can be SmallPebble variables or 
+            Placeholder/Operation instances.
+        Returns:
+            An `Operation` instance. To compute its value, use run().
+        """
+        self.function = function
+        self.arguments = arguments
+
+    def run(self):
+        """Compute the value of this node."""
+        argvals = (a.run() if hasattr(a, "run") else a for a in self.arguments)
+        return self.function(*argvals)
+
+
+class Placeholder(Operation):
+    """A placeholder delayed graph node, for SmallPebble variables
+    to be placed into the graph.
+    
+    Assign the placeholder a value with assign_value().
+    
+    This is just Operation, where function is the identity function.
+    """
+
+    def __init__(self):
+        "Create a Placeholder delayed graph node."
+        super().__init__(lambda a: a, [])
+
+    def assign_value(self, variable):
+        "Give the placeholder a value (of type smallpebble.Variable)."
+        self.arguments = [variable]
+
+    def run(self):
+        assert self.arguments, f"Placeholder {self} hasn't been assigned a value."
+        return super().run()
+
+
+# ----------------
 # ---------------- DEPRECATED
 # ----------------
 # May or may not be removed at some point. Moved here to reduce noise.
