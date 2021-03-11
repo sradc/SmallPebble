@@ -26,7 +26,17 @@ def run_tests_with(array_library):
         tests = (
             f for f in dir(smallpebble.tests.test_smallpebble) if f.startswith("test_")
         )
-        for test in tests:
+        for test in tqdm_wrap(tests):
             getattr(smallpebble.tests.test_smallpebble, test)()
     finally:
         sp.array_library = original_array_library
+
+
+def tqdm_wrap(iterable):
+    """Use tqdm if it is installed."""
+    try:
+        from tqdm import tqdm
+
+        return tqdm(iterable)
+    except ModuleNotFoundError:
+        return iterable
