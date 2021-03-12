@@ -513,30 +513,37 @@ Variable.shape = property(lambda self: self.array.shape)
 # ----------------
 # ---------------- DELAYED GRAPH EXECUTION
 # ----------------
-# For building NNs.
+# Laziness for building NNs.
 # A delayed execution graph (DEG) is only evaluated when .run() is called
 # on one of the nodes.
+# Usage guide:
+# Use classes if there are learnable variables.
+# Use sp.Op directly for functions.
 
 
-class UnassignedError(Exception):
-    pass
+class Lazy:
+    """Make a function lazy. Instead of being evaluated immediately,
+    it is only evaluated when .run() is called.
 
-
-class Op:
-    """A delayed graph node, consisting of an operation (`self.function`) and 
-    the child nodes (`self.arguments`) that the operation is to be applied to.
+    How does this relate to delayed execution graphs?
+    An instance of Lazy is a node on the delayed execution graph,
+    and its arguments are the child nodes.
     """
 
     def __init__(self, function, arguments=[]):
-        """Create a delayed graph node.
+        """Create a lazy function (a.k.a. a delayed graph node).
         
         Args:
             function: A function that takes SmallPebble variables as arguments.
-            arguments (optional): A list of nodes that `function` will take as input.
-            Elements of arguments can be SmallPebble variables or 
+            arguments: A list of nodes that `function` will take as input.
+            Elements of `arguments` can be SmallPebble variables or 
             Placeholder/Op instances.
         Returns:
-            An `Op` instance. To compute its value, use run().
+            A `Lazy` instance. To compute its value, use run().
+
+        E.g.
+        >> sp.Lazy(sp.matmul)(a, b)
+
         """
         self.function = function
         self.arguments = arguments
@@ -554,7 +561,7 @@ class Op:
         return self.function(*argvals)
 
 
-class Placeholder(Op):
+class Placeholder(Lazy):
     """A placeholder delayed graph node, for SmallPebble variables.
     Assign the placeholder a value with assign_value().
     This is pretty much Op but with `function` as the identity function.
@@ -567,6 +574,10 @@ class Placeholder(Op):
     def assign_value(self, variable):
         "Give the placeholder a value (of type smallpebble.Variable)."
         self.arguments = [variable]
+
+
+class UnassignedError(Exception):
+    pass
 
 
 # ---------------- TRAINING - HELPER FUNCTIONS

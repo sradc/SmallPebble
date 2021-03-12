@@ -709,14 +709,21 @@ def test_magic_getitem():
 # ---------------- TEST DELAYED GRAPH EXECUTION
 
 
+def test_operation_and_placeholder_basic():
+    x_in = sp.Placeholder()
+    x = sp.Lazy(lambda x: x ** 2)(x_in)
+    x_in.assign_value(3)
+    assert x.run() == 9, "Expecting a value of 9"
+
+
 def test_operation_and_placeholder_result():
     a_array = np.ones([10, 5])
     b_array = np.ones([5, 10])
 
     a = sp.Placeholder()
     b = sp.Placeholder()
-    c = sp.Op(sp.matmul)(a, b)
-    d = sp.Op(sp.mul, [c, sp.Variable(np.array(5))])
+    c = sp.Lazy(sp.matmul)(a, b)
+    d = sp.Lazy(sp.mul, [c, sp.Variable(np.array(5))])
 
     a.assign_value(sp.Variable(a_array))
     b.assign_value(sp.Variable(b_array))
@@ -734,7 +741,7 @@ def test_operation_and_placeholder_gradients():
 
     a = sp.Placeholder()
     b = sp.Placeholder()
-    y = sp.Op(sp.matmul, [a, b])
+    y = sp.Lazy(sp.matmul)(a, b)
 
     a.assign_value(a_sp)
     b.assign_value(b_sp)
@@ -771,9 +778,9 @@ def test_learnable_and_get_learnables():
 
     a = sp.Placeholder()
     b = sp.Placeholder()
-    c = sp.Op(sp.matmul, [a, b])
-    y = sp.Op(sp.mul, [c, param_1])
-    y = sp.Op(sp.add, [y, param_2])
+    c = sp.Lazy(sp.matmul, [a, b])
+    y = sp.Lazy(sp.mul, [c, param_1])
+    y = sp.Lazy(sp.add, [y, param_2])
 
     params = sp.get_learnables(y)
 
