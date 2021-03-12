@@ -544,12 +544,9 @@ class Operation:
 
 
 class Placeholder(Operation):
-    """A placeholder delayed graph node, for SmallPebble variables
-    to be placed into the graph.
-    
+    """A placeholder delayed graph node, for SmallPebble variables.
     Assign the placeholder a value with assign_value().
-    
-    This is just Operation, where function is the identity function.
+    This is pretty much Operation but with `function` as the identity function.
     """
 
     def __init__(self):
