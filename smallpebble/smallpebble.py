@@ -518,48 +518,55 @@ Variable.shape = property(lambda self: self.array.shape)
 # on one of the nodes.
 
 
-class Operation:
-    """A delayed graph node, consisting of an operation (`function`) and the child nodes
-    (`arguments`) that the operation is to be applied to.
+class UnassignedError(Exception):
+    pass
+
+
+class Op:
+    """A delayed graph node, consisting of an operation (`self.function`) and 
+    the child nodes (`self.arguments`) that the operation is to be applied to.
     """
 
-    def __init__(self, function, arguments):
+    def __init__(self, function, arguments=None):
         """Create a delayed graph node.
         
         Args:
             function: A function that takes SmallPebble variables as arguments.
-            arguments: A list of nodes that `function` will take as input.
+            arguments (optional): A list of nodes that `function` will take as input.
             Elements of arguments can be SmallPebble variables or 
-            Placeholder/Operation instances.
+            Placeholder/Op instances.
         Returns:
-            An `Operation` instance. To compute its value, use run().
+            An `Op` instance. To compute its value, use run().
         """
         self.function = function
         self.arguments = arguments
 
+    def __call__(self, *args):
+        """Set self.arguments."""
+        self.arguments = args
+        return self
+
     def run(self):
         """Compute the value of this node."""
+        if not self.arguments:
+            raise UnassignedError(f"No arguments have been assigned to {self}.")
         argvals = (a.run() if hasattr(a, "run") else a for a in self.arguments)
         return self.function(*argvals)
 
 
-class Placeholder(Operation):
+class Placeholder(Op):
     """A placeholder delayed graph node, for SmallPebble variables.
     Assign the placeholder a value with assign_value().
-    This is pretty much Operation but with `function` as the identity function.
+    This is pretty much Op but with `function` as the identity function.
     """
 
     def __init__(self):
         "Create a Placeholder delayed graph node."
-        super().__init__(lambda a: a, [])
+        super().__init__(lambda a: a)
 
     def assign_value(self, variable):
         "Give the placeholder a value (of type smallpebble.Variable)."
         self.arguments = [variable]
-
-    def run(self):
-        assert self.arguments, f"Placeholder {self} hasn't been assigned a value."
-        return super().run()
 
 
 # ---------------- TRAINING - HELPER FUNCTIONS

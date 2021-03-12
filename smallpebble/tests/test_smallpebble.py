@@ -715,8 +715,8 @@ def test_operation_and_placeholder_result():
 
     a = sp.Placeholder()
     b = sp.Placeholder()
-    c = sp.Operation(sp.matmul, [a, b])
-    d = sp.Operation(sp.mul, [c, sp.Variable(np.array(5))])
+    c = sp.Op(sp.matmul)(a, b)
+    d = sp.Op(sp.mul, [c, sp.Variable(np.array(5))])
 
     a.assign_value(sp.Variable(a_array))
     b.assign_value(sp.Variable(b_array))
@@ -734,7 +734,7 @@ def test_operation_and_placeholder_gradients():
 
     a = sp.Placeholder()
     b = sp.Placeholder()
-    y = sp.Operation(sp.matmul, [a, b])
+    y = sp.Op(sp.matmul, [a, b])
 
     a.assign_value(a_sp)
     b.assign_value(b_sp)
@@ -771,9 +771,9 @@ def test_learnable_and_get_learnables():
 
     a = sp.Placeholder()
     b = sp.Placeholder()
-    c = sp.Operation(sp.matmul, [a, b])
-    y = sp.Operation(sp.mul, [c, param_1])
-    y = sp.Operation(sp.add, [y, param_2])
+    c = sp.Op(sp.matmul, [a, b])
+    y = sp.Op(sp.mul, [c, param_1])
+    y = sp.Op(sp.add, [y, param_2])
 
     params = sp.get_learnables(y)
 
