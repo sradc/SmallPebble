@@ -527,7 +527,7 @@ class Op:
     the child nodes (`self.arguments`) that the operation is to be applied to.
     """
 
-    def __init__(self, function, arguments=None):
+    def __init__(self, function, arguments=[]):
         """Create a delayed graph node.
         
         Args:
