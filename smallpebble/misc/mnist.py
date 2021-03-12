@@ -19,6 +19,9 @@ def load_mnist(savedir=None, delete_intermediate_files=True):
     """Load the MNIST dataset, either from disk or from openml.org.
     See [1] [2] for more information on MNIST.
 
+    >> from smallpebble.misc.mnist import load_mnist
+    >> X_train, y_train, X_test, y_test = load_mnist()
+
     Notes:
     Caches in savedir, to avoid redownloading.
     Converts the data into NumPy's 'npy' format, 
