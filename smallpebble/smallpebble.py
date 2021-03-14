@@ -516,16 +516,13 @@ Variable.shape = property(lambda self: self.array.shape)
 # Laziness for building NNs.
 # A delayed execution graph (DEG) is only evaluated when .run() is called
 # on one of the nodes.
-# Usage guide:
-# Use classes if there are learnable variables.
-# Use sp.Op directly for functions.
 
 
 class Lazy:
     """Make a function lazy. Instead of being evaluated immediately,
     it is only evaluated when .run() is called.
 
-    How does this relate to delayed execution graphs?
+    Note:
     An instance of Lazy is a node on the delayed execution graph,
     and its arguments are the child nodes.
     """
