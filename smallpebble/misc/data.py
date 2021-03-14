@@ -61,19 +61,19 @@ META = {
 }
 
 
-def load_data(dataname, savedir=None, delete_intermediate_files=True):
-    """Load dataname='mnist' or 'cifar', from openml.org.
+def load_data(name, savedir=None, delete_intermediate_files=True):
+    """Load name='mnist' or 'cifar', from openml.org.
 
-    >> from smallpebble.misc.data import load
-    >> X_train, y_train, X_test, y_test = load('mnist')
+    >> from smallpebble.misc import load_data
+    >> X_train, y_train, X_test, y_test = load_data('mnist')
 
     Notes:
     Caches in `savedir` to avoid redownloading (default is ~/.smallpebble/).
     Converts the data into NumPy's 'npy' format, which is smaller and faster to load than 'arff'.
-    
+
     Data is from: https://www.openml.org
     """
-    meta = META[dataname]
+    meta = META[name]
     savedir = pathlib.Path(savedir) if savedir else DEFAULT_SAVEDIR
 
     if (savedir / meta.npy).is_file():
@@ -81,12 +81,12 @@ def load_data(dataname, savedir=None, delete_intermediate_files=True):
     else:
         savedir.mkdir(exist_ok=True)
 
-        print(f"Downloading {dataname} from openml.org")
-        download(savedir, dataname)
+        print(f"Downloading {name} from openml.org")
+        download(savedir, name)
         print("File successfully downloaded and validated.")
 
         print("Converting file...")
-        data = arff_to_npy(savedir, dataname)
+        data = arff_to_npy(savedir, name)
         print("Successfully converted file.")
 
         if delete_intermediate_files:
@@ -95,10 +95,10 @@ def load_data(dataname, savedir=None, delete_intermediate_files=True):
     return meta.splitdata(data)
 
 
-def download(savedir, dataname):
+def download(savedir, name):
     """Download file and check hash."""
 
-    meta = META[dataname]
+    meta = META[name]
     filepath = savedir / meta.filename
 
     # Download the file.
@@ -119,9 +119,9 @@ def download(savedir, dataname):
         raise ValueError(f"Unexpected hash value. Saved file as {errorfilepath.resolve()}")
 
 
-def yield_data(savedir, dataname, datalen):
+def yield_data(savedir, name, datalen):
     "A line at a time, yield data from a comma seperated arff file."
-    filepath = savedir / META[dataname].filename
+    filepath = savedir / META[name].filename
     with open(filepath, "r") as file:
         while True:
             line = file.readline()
@@ -140,12 +140,10 @@ def yield_data(savedir, dataname, datalen):
             yield data
 
 
-def arff_to_npy(savedir, dataname):
-    meta = META[dataname]
+def arff_to_npy(savedir, name):
+    meta = META[name]
     result = np.zeros([meta.rows, meta.cols], meta.dtype)
-    for i, data in tqdm(
-        enumerate(yield_data(savedir, dataname, meta.cols)), total=meta.rows
-    ):
+    for i, data in tqdm(enumerate(yield_data(savedir, name, meta.cols)), total=meta.rows):
         result[i, :] = data
     np.save(savedir / meta.npy, result)
     return result
