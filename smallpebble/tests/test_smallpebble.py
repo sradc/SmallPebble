@@ -723,7 +723,7 @@ def test_operation_and_placeholder_result():
     a = sp.Placeholder()
     b = sp.Placeholder()
     c = sp.Lazy(sp.matmul)(a, b)
-    d = sp.Lazy(sp.mul, [c, sp.Variable(np.array(5))])
+    d = sp.Lazy(sp.mul)(c, sp.Variable(np.array(5)))
 
     a.assign_value(sp.Variable(a_array))
     b.assign_value(sp.Variable(b_array))
@@ -778,9 +778,9 @@ def test_learnable_and_get_learnables():
 
     a = sp.Placeholder()
     b = sp.Placeholder()
-    c = sp.Lazy(sp.matmul, [a, b])
-    y = sp.Lazy(sp.mul, [c, param_1])
-    y = sp.Lazy(sp.add, [y, param_2])
+    y = sp.Lazy(sp.matmul)(a, b)
+    y = sp.Lazy(sp.mul)(y, param_1)
+    y = sp.Lazy(sp.add)(y, param_2)
 
     params = sp.get_learnables(y)
 
