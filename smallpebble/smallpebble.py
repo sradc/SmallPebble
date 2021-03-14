@@ -518,12 +518,12 @@ Variable.shape = property(lambda self: self.array.shape)
 # on one of the nodes.
 
 
-class Lazy:
+class LazyOp:
     """Make a function lazy. Instead of being evaluated immediately,
     it is only evaluated when .run() is called.
 
     Note:
-    An instance of Lazy is a node on the delayed execution graph,
+    An instance of LazyOp is a node on the delayed execution graph,
     and its arguments are child nodes.
     """
 
@@ -534,10 +534,10 @@ class Lazy:
             function: A function that takes SmallPebble variables as arguments.
 
         Returns:
-            A `Lazy` instance. To compute its value, use run().
+            A `LazyOp` instance. To compute its value, use run().
 
         E.g.
-        >> sp.Lazy(sp.matmul)(a, b)
+        >> sp.LazyOp(sp.matmul)(a, b)
         """
         self.function = function
         self.arguments = []
@@ -547,7 +547,7 @@ class Lazy:
         
         *args: A list of nodes that `function` will take as input.
             Elements of `arguments` can be sp.Variable or 
-            sp.Lazy instances.
+            sp.LazyOp instances.
         """
         self.arguments = args
         return self
@@ -560,7 +560,7 @@ class Lazy:
         return self.function(*argvals)
 
 
-class Placeholder(Lazy):
+class Placeholder(LazyOp):
     """A placeholder delayed graph node, for SmallPebble variables.
     Assign the placeholder a value with assign_value().
     This is pretty much Op but with `function` as the identity function.
