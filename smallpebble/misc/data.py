@@ -61,7 +61,7 @@ META = {
 }
 
 
-def load(dataname, savedir=None, delete_intermediate_files=True):
+def load_data(dataname, savedir=None, delete_intermediate_files=True):
     """Load dataname='mnist' or 'cifar', from openml.org.
 
     >> from smallpebble.misc.data import load
@@ -152,10 +152,10 @@ def arff_to_npy(savedir, dataname):
 
 
 if __name__ == "__main__":
-    result = load("mnist", delete_intermediate_files=False)
+    result = load_data("mnist", delete_intermediate_files=False)
     for a in result:
         print(a.shape)
 
-    result = load("cifar", delete_intermediate_files=False)
+    result = load_data("cifar", delete_intermediate_files=False)
     for a in result:
         print(a.shape)
