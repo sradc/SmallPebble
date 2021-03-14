@@ -524,29 +524,31 @@ class Lazy:
 
     Note:
     An instance of Lazy is a node on the delayed execution graph,
-    and its arguments are the child nodes.
+    and its arguments are child nodes.
     """
 
-    def __init__(self, function, arguments=[]):
+    def __init__(self, function):
         """Create a lazy function (a.k.a. a delayed graph node).
         
         Args:
             function: A function that takes SmallPebble variables as arguments.
-            arguments: A list of nodes that `function` will take as input.
-            Elements of `arguments` can be SmallPebble variables or 
-            Placeholder/Op instances.
+
         Returns:
             A `Lazy` instance. To compute its value, use run().
 
         E.g.
         >> sp.Lazy(sp.matmul)(a, b)
-
         """
         self.function = function
-        self.arguments = arguments
+        self.arguments = []
 
     def __call__(self, *args):
-        """Set self.arguments."""
+        """Set self.arguments.
+        
+        *args: A list of nodes that `function` will take as input.
+            Elements of `arguments` can be sp.Variable or 
+            sp.Lazy instances.
+        """
         self.arguments = args
         return self
 
