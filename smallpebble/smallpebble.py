@@ -192,9 +192,7 @@ def getitem(a, indices):
 def log(a):
     "Elementwise log of `a`."
     value = np.log(a.array)
-    local_gradients = (
-        (a, lambda path_value: div(path_value, a)),
-    )
+    local_gradients = ((a, lambda path_value: div(path_value, a)),)
     return Variable(value, local_gradients)
 
 
@@ -298,12 +296,6 @@ def square(a):
     local_gradients = ((a, multiply_by_locgrad,),)
     return Variable(value, local_gradients)
 
-
-# def softmax(a, axis=-1):  #  TODO
-#     exp_a = np.exp(a)
-#     result = exp_a / np.sum(exp_a, axis, keepdims=True)
-#     def multiply_by_locgrad(path_value):
-#         return (result)
 
 def sub(a, b):
     "Elementwise subtraction."
@@ -434,25 +426,6 @@ def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]):
     return reshape(patches_max, [n_images, outheight, outwidth, n_channels])
 
 
-def padding2d(
-    images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
-):
-    """Pad `images` for conv2d, maxpool2d."""
-    if padding == "SAME":
-        pad_top, pad_bottom = pad_amounts(imheight, stride_y, kernheight)
-        pad_left, pad_right = pad_amounts(imwidth, stride_x, kernwidth)
-        images = pad(
-            images,
-            pad_width=[(0, 0), (pad_top, pad_bottom), (pad_left, pad_right), (0, 0),],
-        )
-        _, imheight, imwidth, _ = images.array.shape
-    elif padding == "VALID":
-        pass
-    else:
-        raise ValueError("padding must be 'SAME' or 'VALID'.")
-    return images, imheight, imwidth
-
-
 # ---------------- UTIL
 
 
@@ -490,6 +463,25 @@ def pad_amounts(array_length, stride, kern_length):
     pad_front = padding_amount // 2
     pad_end = padding_amount - pad_front
     return pad_front, pad_end
+
+
+def padding2d(
+    images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
+):
+    """Pad `images` for conv2d, maxpool2d."""
+    if padding == "SAME":
+        pad_top, pad_bottom = pad_amounts(imheight, stride_y, kernheight)
+        pad_left, pad_right = pad_amounts(imwidth, stride_x, kernwidth)
+        images = pad(
+            images,
+            pad_width=[(0, 0), (pad_top, pad_bottom), (pad_left, pad_right), (0, 0),],
+        )
+        _, imheight, imwidth, _ = images.array.shape
+    elif padding == "VALID":
+        pass
+    else:
+        raise ValueError("padding must be 'SAME' or 'VALID'.")
+    return images, imheight, imwidth
 
 
 def patches_index(imheight, imwidth, kernheight, kernwidth, stride_y, stride_x):
