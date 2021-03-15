@@ -378,8 +378,12 @@ Variable.shape = property(lambda self: self.array.shape)
 # whereas here we enable lazy graphs, that are only evaluated when .run() is called.
 
 
+class AssignmentError(Exception):
+    pass
+
+
 class Lazy:
-    "'A lazy node."
+    "'A lazy node on a lazy graph."
 
     def __init__(self, function):
         """Create a lazy node, that will apply `function` to lazy nodes or
@@ -436,12 +440,12 @@ class Placeholder(Lazy):
         self.arguments = [variable]
 
 
-class AssignmentError(Exception):
-    pass
-
-
-# ---------------- TRAINING - HELPER FUNCTIONS
-# To make training parameters in lazy graphs easier.
+# ---------------- LEARNABLES
+# To extract sp.Variables that have been flagged as is_learnable,
+# from a lazy graph.
+# Useful if we don't want to keep track of parameters manually,
+# and are applying the same training method to all parameters,
+# e.g. in neural networks.
 
 
 def learnable(variable):
@@ -467,7 +471,7 @@ def get_learnables(lazy_node):
 # ----------------
 # ---------------- NEURAL NETWORKS
 # ----------------
-# Helper functions for neural network fun.
+# Helper functions for creating neural networks.
 
 
 def batch(X, y, size, seed=None):
