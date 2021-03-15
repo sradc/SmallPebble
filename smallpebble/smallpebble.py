@@ -189,6 +189,15 @@ def getitem(a, indices):
     return Variable(value, local_gradients)
 
 
+def log(a):
+    "Elementwise log of `a`."
+    value = np.log(a.array)
+    local_gradients = (
+        (a, lambda path_value: div(Variable(np.array(1, dtype=a.array.dtype)), a)),
+    )
+    return Variable(value, local_gradients)
+
+
 def matmul(a, b):
     "Matrix multiplication."
     value = np.matmul(a.array, b.array)

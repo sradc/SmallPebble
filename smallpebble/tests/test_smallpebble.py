@@ -190,6 +190,30 @@ def test_getitem():
         assert error < EPS, f"rmse = {error}"
 
 
+def test_log():
+    np.random.seed(0)
+
+    a = sp.Variable(10_000 * np.random.random([3, 2, 5]))
+    y = sp.log(a)
+
+    grads = sp.get_gradients(y)
+    grad_a_2nd = sp.get_gradients(grads[a])[a]
+    sp_results = [y, grads[a], grad_a_2nd]
+
+    def func(a):
+        return np.log(a)
+
+    y_np = func(a.array)
+    args = [a.array]
+    num_grads = numgrads(func, args, n=1, delta=1)
+    num_grads2 = numgrads(func, args, n=2, delta=1)
+    num_results = [y_np, num_grads[0], num_grads2[0]]
+
+    for spval, numval in zip(sp_results, num_results):
+        error = rmsq(spval.array, numval)
+        assert error < EPS, f"rmse = {error}"
+
+
 def test_matmul():
     np.random.seed(0)
 
