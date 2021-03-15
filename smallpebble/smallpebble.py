@@ -351,161 +351,6 @@ def where(condition, a, b):
     return Variable(value, local_gradients)
 
 
-# ---------------- HIGHER OPS
-# Operations written in terms of SmallPebble operations.
-
-
-def conv2d(images, kernels, padding="SAME", strides=[1, 1]):
-    """2D convolution, with same api as tf.nn.conv2d [1].
-
-    Args:
-        images: A `Variable` of shape [n_images, imheight, imwidth, n_channels].
-        kernels: A `Variable` of shape [kernheight, kernwidth, channels_in, channels_out].
-        `channels_in` must be the same as the images' `n_channels`.
-        Note the plural, `kernels`, because there are actually n=channels_out kernels,
-        where a single kernel has dimension [kernheight, kernwidth, channels_in].
-        padding: Can be "SAME" or "VALID". Matches the padding used by tf.nn.conv2d.
-        "SAME" results in the output images being of [imheight, imwidth],
-        this is achieved by zero padding the input images.
-        "VALID" is the result of convolution when there is no 0 padding.
-        strides: Specifies the vertical and horizontal strides:
-        strides = [vertical stride, horizontal stride]
-    Returns:
-        A `Variable` of dimensions [n_images, outheight, outwidth, channels_out].
-
-    This implementation:
-    - Indexes images to extract patches.
-    - Reshapes patches and kernels, then matmuls them.
-    - Reshapes the result back to the expected shape.
-    (A diagram is helpful for understanding this..)
-
-    [1] https://www.tensorflow.org/api_docs/python/tf/nn/conv2d
-    """
-    n_images, imheight, imwidth, _ = images.array.shape
-    kernheight, kernwidth, channels_in, channels_out = kernels.array.shape
-    stride_y, stride_x = strides
-    images, imheight, imwidth = padding2d(
-        images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
-    )
-    # Index to get the image patches:
-    index_of_patches, outheight, outwidth, n_patches = patches_index(
-        imheight, imwidth, kernheight, kernwidth, stride_y, stride_x
-    )
-    #  Extract patches, and reshape so can matrix multiply.
-    patches = getitem(
-        images, (slice(None), index_of_patches[0], index_of_patches[1], slice(None)),
-    )
-    patches_as_matrix = reshape(
-        patches, [n_images * n_patches, kernheight * kernwidth * channels_in]
-    )
-    kernels_as_matrix = reshape(
-        kernels, [kernheight * kernwidth * channels_in, channels_out]
-    )
-    result = matmul(patches_as_matrix, kernels_as_matrix)
-    return reshape(result, [n_images, outheight, outwidth, channels_out])
-
-
-def lrelu(a, alpha=0.02):
-    return where(a.array > 0, a, mul(a, Variable(np.array(alpha, a.array.dtype))))
-
-
-def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]):
-    """Maxpooling on a `Variable` of shape [n_images, imheight, imwidth, n_channels]."""
-    n_images, imheight, imwidth, n_channels = images.array.shape
-    stride_y, stride_x = strides
-    images, imheight, imwidth = padding2d(
-        images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
-    )
-    index_of_patches, outheight, outwidth, n_patches = patches_index(
-        imheight, imwidth, kernheight, kernwidth, stride_y, stride_x
-    )
-    patches = getitem(
-        images, (slice(None), index_of_patches[0], index_of_patches[1], slice(None)),
-    )
-    patches_max = maxax(patches, axis=2)
-    return reshape(patches_max, [n_images, outheight, outwidth, n_channels])
-
-
-def softmax(a, axis=-1):
-    "Softmax, on `axis`."
-    exp_a = exp(a)
-    sum_shape = list(a.shape)
-    sum_shape[axis] = 1
-    return exp_a / reshape(sum(exp_a, axis=axis), sum_shape)
-
-
-# ---------------- UTIL
-
-
-def broadcastinfo(a_shape, b_shape):
-    "Get which dimensions are added or repeated when `a` and `b` are broadcast."
-    ndim = max(len(a_shape), len(b_shape))
-
-    add_ndims_to_a = ndim - len(a_shape)
-    add_ndims_to_b = ndim - len(b_shape)
-
-    a_shape_ = np.array([1] * add_ndims_to_a + list(a_shape))
-    b_shape_ = np.array([1] * add_ndims_to_b + list(b_shape))
-
-    if not all((a_shape_ == b_shape_) | (a_shape_ == 1) | (b_shape_ == 1)):
-        raise ValueError(f"could not broadcast shapes {a_shape} {b_shape}")
-
-    a_repeatdims = (a_shape_ == 1) & (b_shape_ > 1)  # the repeated dims
-    a_repeatdims[:add_ndims_to_a] = True  # the added dims
-    a_repeatdims = np.where(a_repeatdims == True)[0]  # indices of axes where True
-
-    b_repeatdims = (b_shape_ == 1) & (a_shape_ > 1)
-    b_repeatdims[:add_ndims_to_b] = True
-    b_repeatdims = np.where(b_repeatdims == True)[0]
-
-    return tuple(a_repeatdims), tuple(b_repeatdims)
-
-
-def pad_amounts(array_length, stride, kern_length):
-    """Amount of padding to be applied to a 1D array.
-    Matches TensorFlow's conv2d padding, when padding='SAME'.
-    """
-    num_patches = math.ceil(array_length / stride)
-    target_length = (num_patches - 1) * stride + kern_length
-    padding_amount = max(target_length - array_length, 0)
-    pad_front = padding_amount // 2
-    pad_end = padding_amount - pad_front
-    return pad_front, pad_end
-
-
-def padding2d(
-    images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
-):
-    """Pad `images` for conv2d, maxpool2d."""
-    if padding == "SAME":
-        pad_top, pad_bottom = pad_amounts(imheight, stride_y, kernheight)
-        pad_left, pad_right = pad_amounts(imwidth, stride_x, kernwidth)
-        images = pad(
-            images,
-            pad_width=[(0, 0), (pad_top, pad_bottom), (pad_left, pad_right), (0, 0),],
-        )
-        _, imheight, imwidth, _ = images.array.shape
-    elif padding == "VALID":
-        pass
-    else:
-        raise ValueError("padding must be 'SAME' or 'VALID'.")
-    return images, imheight, imwidth
-
-
-def patches_index(imheight, imwidth, kernheight, kernwidth, stride_y, stride_x):
-    "Index to get image patches, e.g. for 2d convolution."
-    max_y_idx = imheight - kernheight + 1
-    max_x_idx = imwidth - kernwidth + 1
-    row_major_index = np.arange(imheight * imwidth).reshape([imheight, imwidth])
-    patch_corners = row_major_index[0:max_y_idx:stride_y, 0:max_x_idx:stride_x]
-    elements_relative = row_major_index[0:kernheight, 0:kernwidth]
-    index_of_patches = patch_corners.reshape([-1, 1]) + elements_relative.reshape([1, -1])
-    index_of_patches = np.unravel_index(index_of_patches, shape=[imheight, imwidth])
-    outheight, outwidth = patch_corners.shape
-    n_patches = outheight * outwidth
-    return index_of_patches, outheight, outwidth, n_patches
-
-
 # ---------------- AUGMENTING `VARIABLE`
 # Add methods/properties to the Variable class for convenience/ux.
 # This is not essential (was put down here to not distract the reader from autodiff).
@@ -617,6 +462,221 @@ def get_learnables(lazy_node):
 
     find_learnables(lazy_node)
     return learnable_vars
+
+
+# ----------------
+# ---------------- NEURAL NETWORKS
+# ----------------
+# Helper functions for neural network fun.
+
+
+def batch(X, y, size, seed=None):
+    "Yields sub-batches of X,y, randomly selecting with replacement."
+    assert (y.ndim == 1) and (X.shape[0] == y.size), "unexpected dimensions."
+    if seed:
+        np.random.seed(seed)
+    while True:
+        idx = np.random.randint(0, y.size, size)
+        yield X[idx, ...], y[idx]
+
+
+def conv2d(images, kernels, padding="SAME", strides=[1, 1]) -> Variable:
+    """2D convolution, with same api as tf.nn.conv2d [1].
+
+    Args:
+        images: A `Variable` of shape [n_images, imheight, imwidth, n_channels].
+        kernels: A `Variable` of shape [kernheight, kernwidth, channels_in, channels_out].
+        `channels_in` must be the same as the images' `n_channels`.
+        Note the plural, `kernels`, because there are actually n=channels_out kernels,
+        where a single kernel has dimension [kernheight, kernwidth, channels_in].
+        padding: Can be "SAME" or "VALID". Matches the padding used by tf.nn.conv2d.
+        "SAME" results in the output images being of [imheight, imwidth],
+        this is achieved by zero padding the input images.
+        "VALID" is the result of convolution when there is no 0 padding.
+        strides: Specifies the vertical and horizontal strides:
+        strides = [vertical stride, horizontal stride]
+    Returns:
+        A `Variable` of dimensions [n_images, outheight, outwidth, channels_out].
+
+    This implementation:
+    - Indexes images to extract patches.
+    - Reshapes patches and kernels, then matmuls them.
+    - Reshapes the result back to the expected shape.
+    (A diagram is helpful for understanding this..)
+
+    [1] https://www.tensorflow.org/api_docs/python/tf/nn/conv2d
+    """
+    n_images, imheight, imwidth, _ = images.array.shape
+    kernheight, kernwidth, channels_in, channels_out = kernels.array.shape
+    stride_y, stride_x = strides
+    images, imheight, imwidth = padding2d(
+        images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
+    )
+    # Index to get the image patches:
+    index_of_patches, outheight, outwidth, n_patches = patches_index(
+        imheight, imwidth, kernheight, kernwidth, stride_y, stride_x
+    )
+    #  Extract patches, and reshape so can matrix multiply.
+    patches = getitem(
+        images, (slice(None), index_of_patches[0], index_of_patches[1], slice(None)),
+    )
+    patches_as_matrix = reshape(
+        patches, [n_images * n_patches, kernheight * kernwidth * channels_in]
+    )
+    kernels_as_matrix = reshape(
+        kernels, [kernheight * kernwidth * channels_in, channels_out]
+    )
+    result = matmul(patches_as_matrix, kernels_as_matrix)
+    return reshape(result, [n_images, outheight, outwidth, channels_out])
+
+
+def cross_entropy(y_pred, y_true: np.array, axis=-1) -> Variable:
+    """Cross entropy.
+    Args:
+        y_pred: A sp.Variable instance of shape [batch_size, n_classes]
+        y_true: A NumPy array, of shape [batch_size], containing the true class labels.
+    Returns: 
+        A scalar, reduced by summation.
+    """
+    idx = (np.arange(len(y_true)), y_true)
+    return neg(sum(log(getitem(y_pred, idx))))
+
+
+def he_init(insize, outsize) -> np.array:
+    "He weight initialisation."
+    sigma = np.sqrt(4 / (insize + outsize))
+    return np.random.random([insize, outsize]) * sigma - sigma / 2
+
+
+def linearlayer(insize, outsize) -> Lazy:
+    "Create a linear fully connected layer."
+    weights = learnable(Variable(he_init(insize, outsize)))
+    bias = learnable(Variable(np.ones([outsize], np.float32)))
+    func = lambda a, weights, bias: matmul(a, weights) + bias
+    return lambda a: Lazy(func)(a, weights, bias)
+
+
+def lrelu(a, alpha=0.02) -> Variable:
+    "Leaky relu activation function."
+    return where(a.array > 0, a, mul(a, Variable(np.array(alpha, a.array.dtype))))
+
+
+def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]) -> Variable:
+    """Maxpooling on a `Variable` of shape [n_images, imheight, imwidth, n_channels]."""
+    n_images, imheight, imwidth, n_channels = images.array.shape
+    stride_y, stride_x = strides
+    images, imheight, imwidth = padding2d(
+        images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
+    )
+    index_of_patches, outheight, outwidth, n_patches = patches_index(
+        imheight, imwidth, kernheight, kernwidth, stride_y, stride_x
+    )
+    patches = getitem(
+        images, (slice(None), index_of_patches[0], index_of_patches[1], slice(None)),
+    )
+    patches_max = maxax(patches, axis=2)
+    return reshape(patches_max, [n_images, outheight, outwidth, n_channels])
+
+
+def onehot(y, n_classes) -> np.array:
+    "Onehot encode vector y with classes 0 to n_classes-1."
+    result = np.zeros([len(y), n_classes])
+    result[np.arange(len(y)), y] = 1
+    return result
+
+
+def sgd_step(variables, gradients, gamma) -> None:
+    """Carry out a single step of gradient descent.
+    Modifies variable.array directly.
+    """
+    for variable in variables:
+        gradient = gradients[variable]
+        variable.array -= gamma * gradient.array
+
+
+def softmax(a, axis=-1) -> Variable:
+    "Softmax on `axis`."
+    exp_a = exp(a)
+    sum_shape = list(a.shape)
+    sum_shape[axis] = 1
+    return exp_a / reshape(sum(exp_a, axis=axis), sum_shape)
+
+
+def sum_sqr_diff(y_pred, y_true) -> Variable:
+    "Sum of squared differences."
+    return sum(square(y_pred - y_true))
+
+
+# ---------------- UTIL
+
+
+def broadcastinfo(a_shape, b_shape):
+    "Get which dimensions are added or repeated when `a` and `b` are broadcast."
+    ndim = max(len(a_shape), len(b_shape))
+
+    add_ndims_to_a = ndim - len(a_shape)
+    add_ndims_to_b = ndim - len(b_shape)
+
+    a_shape_ = np.array([1] * add_ndims_to_a + list(a_shape))
+    b_shape_ = np.array([1] * add_ndims_to_b + list(b_shape))
+
+    if not all((a_shape_ == b_shape_) | (a_shape_ == 1) | (b_shape_ == 1)):
+        raise ValueError(f"could not broadcast shapes {a_shape} {b_shape}")
+
+    a_repeatdims = (a_shape_ == 1) & (b_shape_ > 1)  # the repeated dims
+    a_repeatdims[:add_ndims_to_a] = True  # the added dims
+    a_repeatdims = np.where(a_repeatdims == True)[0]  # indices of axes where True
+
+    b_repeatdims = (b_shape_ == 1) & (a_shape_ > 1)
+    b_repeatdims[:add_ndims_to_b] = True
+    b_repeatdims = np.where(b_repeatdims == True)[0]
+
+    return tuple(a_repeatdims), tuple(b_repeatdims)
+
+
+def pad_amounts(array_length, stride, kern_length):
+    """Amount of padding to be applied to a 1D array.
+    Matches TensorFlow's conv2d padding, when padding='SAME'.
+    """
+    num_patches = math.ceil(array_length / stride)
+    target_length = (num_patches - 1) * stride + kern_length
+    padding_amount = max(target_length - array_length, 0)
+    pad_front = padding_amount // 2
+    pad_end = padding_amount - pad_front
+    return pad_front, pad_end
+
+
+def padding2d(
+    images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
+):
+    """Pad `images` for conv2d, maxpool2d."""
+    if padding == "SAME":
+        pad_top, pad_bottom = pad_amounts(imheight, stride_y, kernheight)
+        pad_left, pad_right = pad_amounts(imwidth, stride_x, kernwidth)
+        images = pad(
+            images,
+            pad_width=[(0, 0), (pad_top, pad_bottom), (pad_left, pad_right), (0, 0),],
+        )
+        _, imheight, imwidth, _ = images.array.shape
+    elif padding == "VALID":
+        pass
+    else:
+        raise ValueError("padding must be 'SAME' or 'VALID'.")
+    return images, imheight, imwidth
+
+
+def patches_index(imheight, imwidth, kernheight, kernwidth, stride_y, stride_x):
+    "Index to get image patches, e.g. for 2d convolution."
+    max_y_idx = imheight - kernheight + 1
+    max_x_idx = imwidth - kernwidth + 1
+    row_major_index = np.arange(imheight * imwidth).reshape([imheight, imwidth])
+    patch_corners = row_major_index[0:max_y_idx:stride_y, 0:max_x_idx:stride_x]
+    elements_relative = row_major_index[0:kernheight, 0:kernwidth]
+    index_of_patches = patch_corners.reshape([-1, 1]) + elements_relative.reshape([1, -1])
+    index_of_patches = np.unravel_index(index_of_patches, shape=[imheight, imwidth])
+    outheight, outwidth = patch_corners.shape
+    n_patches = outheight * outwidth
+    return index_of_patches, outheight, outwidth, n_patches
 
 
 # ----------------
