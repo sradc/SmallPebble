@@ -193,7 +193,7 @@ def test_getitem():
 def test_log():
     np.random.seed(0)
 
-    a = sp.Variable(10_000 * np.random.random([3, 2, 5]))
+    a = sp.Variable(100*np.random.random([3, 2, 5])+100)
     y = sp.log(a)
 
     grads = sp.get_gradients(y)
