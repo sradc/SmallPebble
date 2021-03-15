@@ -34,7 +34,7 @@ def test_add():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -60,7 +60,7 @@ def test_add2():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -88,7 +88,7 @@ def test_add_at():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -113,7 +113,7 @@ def test_div():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -136,7 +136,7 @@ def test_exp():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -161,7 +161,7 @@ def test_expand_dims():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -186,7 +186,7 @@ def test_getitem():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -210,7 +210,7 @@ def test_log():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -235,7 +235,7 @@ def test_matmul():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -260,7 +260,7 @@ def test_matmul2():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -283,7 +283,7 @@ def test_matrix_tranpose():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -308,7 +308,7 @@ def test_maxax():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -333,7 +333,7 @@ def test_mul1():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -359,7 +359,7 @@ def test_mul2():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
 
         assert error < EPS, f"rmse = {error}"
 
@@ -386,7 +386,7 @@ def test_mul3():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
 
         assert error < EPS, f"rmse = {error}"
 
@@ -411,7 +411,7 @@ def test_pad():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -435,7 +435,7 @@ def test_reshape():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -462,7 +462,7 @@ def test_setat():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -485,7 +485,7 @@ def test_square():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -511,7 +511,7 @@ def test_sub():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -534,7 +534,7 @@ def test_sum():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -560,7 +560,7 @@ def test_where():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -672,7 +672,7 @@ def test_maxpool2d():
             grad_images_tf = tape.gradient(result_tf, [images_tf])[0]
 
             # Compare results:
-            results_error = rmsq(result_sp.array, result_tf)
+            results_error = rmse(result_sp.array, result_tf)
             assert results_error < EPS, f"Results error = {results_error}"
 
             # Compare gradients:
@@ -701,7 +701,7 @@ def test_lrelu():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -726,7 +726,7 @@ def test_magic_getitem():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -786,7 +786,7 @@ def test_operation_and_placeholder_gradients():
     num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -844,7 +844,7 @@ def numgrad(func, a, delta=1e-6):
     return grad
 
 
-def rmsq(a: np.ndarray, b: np.ndarray):
+def rmse(a: np.ndarray, b: np.ndarray):
     "Root mean square error."
     return np.sqrt(np.mean((a - b) ** 2))
 
@@ -873,7 +873,7 @@ def test_bincount():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -898,7 +898,7 @@ def test_getitemflat():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
 
@@ -922,6 +922,6 @@ def test_sliding_window_view():
     num_results = [y_np, num_grads[0], num_grads2[0]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmsq(spval.array, numval)
+        error = rmse(spval.array, numval)
         assert error < EPS, f"rmse = {error}"
 
