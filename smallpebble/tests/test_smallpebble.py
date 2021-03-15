@@ -705,6 +705,32 @@ def test_maxpool2d():
             assert imgrad_error < EPS, f"Gradient error = {imgrad_error}"
 
 
+def test_softmax():
+    "NOTE: lowered error tolerence, due to numerical errors."
+    np.random.seed(0)
+
+    a = sp.Variable(np.random.random([3, 2, 5])*150)
+    y = sp.softmax(a)
+
+    grads = sp.get_gradients(y)
+    grad_a_2nd = sp.get_gradients(grads[a])[a]
+    sp_results = [y, grads[a], grad_a_2nd]
+
+    def func(a):
+        exp_a = np.exp(a)
+        return exp_a / np.sum(exp_a, axis=-1, keepdims=True)
+
+    y_np = func(a.array)
+    args = [a.array]
+    num_grads = numgrads(func, args, n=1, delta=1e-6)
+    num_grads2 = numgrads(func, args, n=2, delta=1e-6)
+    num_results = [y_np, num_grads[0], num_grads2[0]]
+
+    for spval, numval in zip(sp_results, num_results):
+        error = rmse(spval.array, numval)
+        assert error < 1e-4, f"rmse = {error}"
+
+
 # ---------------- MAGIC METHODS
 
 

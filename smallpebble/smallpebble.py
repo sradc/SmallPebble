@@ -426,6 +426,14 @@ def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]):
     return reshape(patches_max, [n_images, outheight, outwidth, n_channels])
 
 
+def softmax(a, axis=-1):
+    "Softmax, on `axis`."
+    exp_a = exp(a)
+    sum_shape = list(a.shape)
+    sum_shape[axis] = 1
+    return exp_a / reshape(sum(exp_a, axis=axis), sum_shape)
+
+
 # ---------------- UTIL
 
 
