@@ -193,7 +193,7 @@ def test_getitem():
 def test_log():
     np.random.seed(0)
 
-    a = sp.Variable(100*np.random.random([3, 2, 5])+100)
+    a = sp.Variable(100 * np.random.random([3, 2, 5]) + 100)
     y = sp.log(a)
 
     grads = sp.get_gradients(y)
@@ -650,6 +650,31 @@ def test_conv2d_2nd_grads():
     assert np.sum(kernels_sp_deriv2.array) == 0
 
 
+def test_lrelu():
+    np.random.seed(0)
+
+    a = sp.Variable(np.random.random([3, 2, 5]))
+    alpha = 0.1
+    y = sp.lrelu(a, alpha)
+
+    grads = sp.get_gradients(y)
+    grad_a_2nd = sp.get_gradients(grads[a])[a]
+    sp_results = [y, grads[a], grad_a_2nd]
+
+    def func(a):
+        return np.maximum(a, a * alpha)
+
+    y_np = func(a.array)
+    args = [a.array]
+    num_grads = numgrads(func, args, n=1, delta=1e-6)
+    num_grads2 = numgrads(func, args, n=2, delta=1e-6)
+    num_results = [y_np, num_grads[0], num_grads2[0]]
+
+    for spval, numval in zip(sp_results, num_results):
+        error = rmse(spval.array, numval)
+        assert error < EPS, f"rmse = {error}"
+
+
 def test_maxpool2d():
     np.random.seed(0)
     images = np.random.random([4, 12, 14, 3])
@@ -678,31 +703,6 @@ def test_maxpool2d():
             # Compare gradients:
             imgrad_error = np.mean(np.abs(grad_images_sp.array - grad_images_tf))
             assert imgrad_error < EPS, f"Gradient error = {imgrad_error}"
-
-
-def test_lrelu():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
-    alpha = 0.1
-    y = sp.lrelu(a, alpha)
-
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.maximum(a, a * alpha)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-6)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-6)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
 
 
 # ---------------- MAGIC METHODS
