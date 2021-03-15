@@ -511,33 +511,33 @@ Variable.shape = property(lambda self: self.array.shape)
 
 
 # ----------------
-# ---------------- DELAYED GRAPH EXECUTION
+# ---------------- LAZY GRAPHS
 # ----------------
-# Laziness for building NNs.
-# A delayed execution graph (DEG) is only evaluated when .run() is called
-# on one of the nodes.
+# Forward pass laziness.
+# Normal SmallPebble operations are computed immediately,
+# whereas here we enable lazy graphs, that are only evaluated when .run() is called.
 
 
-class LazyOp:
-    """Make a function lazy. Instead of being evaluated immediately,
-    it is only evaluated when .run() is called.
-
-    Note:
-    An instance of LazyOp is a node on the delayed execution graph,
-    and its arguments are child nodes.
-    """
+class Lazy:
+    "'A lazy node."
 
     def __init__(self, function):
-        """Create a lazy function (a.k.a. a delayed graph node).
+        """Create a lazy node, that will apply `function` to lazy nodes or
+        SmallPebble variables.
         
         Args:
-            function: A function that takes SmallPebble variables as arguments.
+            function: A SmallPebble operation.
 
         Returns:
-            A `LazyOp` instance. To compute its value, use run().
+            A `Lazy` instance, which should be passed arguments immediately (see example).
+            To compute its value call `.run()`.
 
-        E.g.
-        >> sp.LazyOp(sp.matmul)(a, b)
+        Example:
+        >> a = sp.Placeholder()
+        >> b = sp.Variable(np.ones([4, 2]))
+        >> y = sp.Lazy(sp.matmul)(a, b)
+        >> a.assign_value(sp.Variable(np.ones([3, 4])))
+        >> result = y.run()
         """
         self.function = function
         self.arguments = []
@@ -547,27 +547,28 @@ class LazyOp:
         
         *args: A list of nodes that `function` will take as input.
             Elements of `arguments` can be sp.Variable or 
-            sp.LazyOp instances.
+            sp.Lazy instances.
         """
+        if self.arguments:
+            raise AssignmentError(f"Arguments already assigned to {self}.")
         self.arguments = args
         return self
 
     def run(self):
         """Compute the value of this node."""
         if not self.arguments:
-            raise UnassignedError(f"No arguments have been assigned to {self}.")
+            raise AssignmentError(f"No arguments have been assigned to {self}.")
         argvals = (a.run() if hasattr(a, "run") else a for a in self.arguments)
         return self.function(*argvals)
 
 
-class Placeholder(LazyOp):
-    """A placeholder delayed graph node, for SmallPebble variables.
+class Placeholder(Lazy):
+    """A placeholder lazy graph node, for SmallPebble variables.
     Assign the placeholder a value with assign_value().
-    This is pretty much Op but with `function` as the identity function.
     """
 
     def __init__(self):
-        "Create a Placeholder delayed graph node."
+        "Create a Placeholder lazy graph node."
         super().__init__(lambda a: a)
 
     def assign_value(self, variable):
@@ -575,12 +576,12 @@ class Placeholder(LazyOp):
         self.arguments = [variable]
 
 
-class UnassignedError(Exception):
+class AssignmentError(Exception):
     pass
 
 
 # ---------------- TRAINING - HELPER FUNCTIONS
-# To make training parameters in delayed execution graphs easier.
+# To make training parameters in lazy graphs easier.
 
 
 def learnable(variable):
@@ -589,8 +590,8 @@ def learnable(variable):
     return variable
 
 
-def get_learnables(node):
-    "Get `variables` where is_learnable=True from a delayed execution graph."
+def get_learnables(lazy_node):
+    "Get `variables` where is_learnable=True from a lazy graph."
     learnable_vars = []
 
     def find_learnables(node):
@@ -599,7 +600,7 @@ def get_learnables(node):
                 learnable_vars.append(child)
             find_learnables(child)
 
-    find_learnables(node)
+    find_learnables(lazy_node)
     return learnable_vars
 
 
