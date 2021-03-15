@@ -193,7 +193,7 @@ def log(a):
     "Elementwise log of `a`."
     value = np.log(a.array)
     local_gradients = (
-        (a, lambda path_value: div(Variable(np.array(1, dtype=a.array.dtype)), a)),
+        (a, lambda path_value: div(path_value, a)),
     )
     return Variable(value, local_gradients)
 
@@ -298,6 +298,12 @@ def square(a):
     local_gradients = ((a, multiply_by_locgrad,),)
     return Variable(value, local_gradients)
 
+
+# def softmax(a, axis=-1):  #  TODO
+#     exp_a = np.exp(a)
+#     result = exp_a / np.sum(exp_a, axis, keepdims=True)
+#     def multiply_by_locgrad(path_value):
+#         return (result)
 
 def sub(a, b):
     "Elementwise subtraction."
