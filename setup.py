@@ -1,10 +1,10 @@
 import pathlib
 import setuptools
-import smallpebble
+from smallpebble.version import version
 
 setuptools.setup(
     name="smallpebble",
-    version=smallpebble.__version__,
+    version=version,
     author="Sidney Radcliffe",
     author_email="sidneyradcliffe@gmail.com",
     description="Minimal automatic differentiation implementation in Python, NumPy.",
