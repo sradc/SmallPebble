@@ -683,6 +683,34 @@ def patches_index(imheight, imwidth, kernheight, kernwidth, stride_y, stride_x):
     return index_of_patches, outheight, outwidth, n_patches
 
 
+def np_sliding_window_view(x, window_shape):
+    """This is a simplified version of np.sliding_window_view,
+    based on [1], that also works with CuPy.
+        
+    Args:
+        x: an n-dimensional array.
+        window_shape: a window size, for each dimension of x.
+    Returns:
+        A view into x, based on the window size.
+    
+    [1] https://github.com/numpy/numpy/blob/main/numpy/lib/stride_tricks.py    
+    """
+    window_shape = tuple(window_shape)
+    # Need the checks, because as_strided is not memory safe.
+    if not len(window_shape) == x.ndim:
+        raise ValueError(f"Must provide a window size for each dimension of x.")
+    if any(size < 0 for size in window_shape):
+        raise ValueError("`window_shape` cannot contain negative values")
+    if any(x_size < w_size for x_size, w_size in zip(x.shape, window_shape)):
+        raise ValueError("window shape cannot be larger than input array shape")
+    out_strides = x.strides + x.strides
+    reduced_shape = tuple(
+        x_size - w_size + 1 for x_size, w_size in zip(x.shape, window_shape)
+    )
+    out_shape = reduced_shape + window_shape
+    return np.lib.stride_tricks.as_strided(x, strides=out_strides, shape=out_shape)
+
+
 # ----------------
 # ---------------- DEPRECATED
 # ----------------
@@ -715,16 +743,25 @@ def getitemflat(a, idx):
 
 
 def sliding_window_view(a, window_shape):
-    value = np.lib.stride_tricks.sliding_window_view(a.array, window_shape)
+    value = np_sliding_window_view(a.array, window_shape)
 
     def multiply_by_locgrad(path_value):
-        # this is generally quicker than add.at ..
-        idx = np.arange(a.array.size).reshape(a.array.shape)
-        idx = np.lib.stride_tricks.sliding_window_view(idx, window_shape)
-        idx = idx.reshape(-1)
+        grad = sum(path_value, tuple(range(a.ndim, 2 * a.ndim)))
+        pad_amounts = [(w - 1, w - 1) for w in window_shape]
+        grad = pad(grad, pad_amounts)
+        grad = sliding_window_view(grad, window_shape)
+        grad = sum(grad, tuple(range(a.ndim, 2 * a.ndim)))
+        grad = grad / Variable(np.product(path_value.array.shape[a.ndim :]))
+        return grad
 
-        path_value = reshape(path_value, (-1))
-        return reshape(bincount(idx, path_value, a.array.size), a.array.shape)
+    # Faster method, but uses more memory:
+    # def multiply_by_locgrad(path_value):
+    #     # this is generally quicker than add.at ..
+    #     idx = np.arange(a.array.size).reshape(a.array.shape)
+    #     idx = np_sliding_window_view(idx, window_shape)
+    #     idx = idx.reshape(-1)
+    #     path_value = reshape(path_value, (-1))
+    #     return reshape(bincount(idx, path_value, a.array.size), a.array.shape)
 
     local_gradients = ((a, multiply_by_locgrad),)
 

@@ -4,7 +4,6 @@ These tests will generally compare the first and second
 derivatives from SmallPebble's autodiff against numerical derivatives.
 """
 import numpy as np
-import numpy.lib.stride_tricks as stride_tricks
 import tensorflow as tf
 import smallpebble as sp
 
@@ -585,7 +584,7 @@ def test_conv2d_result():
         for padding in ["SAME", "VALID"]:
             strides = [stride, stride]
             result_sp = sp.conv2d(
-                sp.Variable(images), sp.Variable(kernels), padding=padding, strides=strides
+                sp.Variable(images), sp.Variable(kernels), padding=padding, strides=strides,
             )
             result_tf = tf.nn.conv2d(images, kernels, padding=padding, strides=strides)
             result_mean_error = np.mean(np.abs(result_sp.array - result_tf))
@@ -709,7 +708,7 @@ def test_softmax():
     "NOTE: lowered error tolerence, due to numerical errors."
     np.random.seed(0)
 
-    a = sp.Variable(np.random.random([3, 2, 5])*150)
+    a = sp.Variable(np.random.random([3, 2, 5]) * 150)
     y = sp.softmax(a)
 
     grads = sp.get_gradients(y)
@@ -930,8 +929,9 @@ def test_getitemflat():
 
 def test_sliding_window_view():
 
-    a = sp.Variable(np.random.random([2, 5, 5, 2]))
-    window_shape = (1, 2, 2, 2)
+    a = sp.Variable(np.random.random([2, 4, 5, 2]))
+    window_shape = (2, 3, 2, 2)
+
     y = sp.sliding_window_view(a, window_shape)
 
     grads = sp.get_gradients(y)
@@ -939,7 +939,7 @@ def test_sliding_window_view():
     sp_results = [y, grads[a], grad_a_2nd]
 
     def func(a):
-        return stride_tricks.sliding_window_view(a, window_shape)
+        return sp.np_sliding_window_view(a, window_shape)
 
     y_np = func(a.array)
     args = [a.array]
