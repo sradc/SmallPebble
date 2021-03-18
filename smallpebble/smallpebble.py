@@ -745,23 +745,24 @@ def getitemflat(a, idx):
 def sliding_window_view(a, window_shape):
     value = np_sliding_window_view(a.array, window_shape)
 
-    def multiply_by_locgrad(path_value):
-        grad = sum(path_value, tuple(range(a.ndim, 2 * a.ndim)))
-        pad_amounts = [(w - 1, w - 1) for w in window_shape]
-        grad = pad(grad, pad_amounts)
-        grad = sliding_window_view(grad, window_shape)
-        grad = sum(grad, tuple(range(a.ndim, 2 * a.ndim)))
-        grad = grad / Variable(np.product(path_value.array.shape[a.ndim :]))
-        return grad
-
-    # Faster method, but uses more memory:
+    # Not correct, and slower, but uses less memory.
     # def multiply_by_locgrad(path_value):
-    #     # this is generally quicker than add.at ..
-    #     idx = np.arange(a.array.size).reshape(a.array.shape)
-    #     idx = np_sliding_window_view(idx, window_shape)
-    #     idx = idx.reshape(-1)
-    #     path_value = reshape(path_value, (-1))
-    #     return reshape(bincount(idx, path_value, a.array.size), a.array.shape)
+    #     grad = sum(path_value, tuple(range(a.ndim, 2 * a.ndim)))
+    #     pad_amounts = [(w - 1, w - 1) for w in window_shape]
+    #     grad = pad(grad, pad_amounts)
+    #     grad = sliding_window_view(grad, window_shape)
+    #     grad = sum(grad, tuple(range(a.ndim, 2 * a.ndim)))
+    #     grad = grad / Variable(np.product(path_value.array.shape[a.ndim :]))
+    #     return grad
+
+    # # Faster method, but uses more memory:
+    def multiply_by_locgrad(path_value):
+        # this is generally quicker than add.at ..
+        idx = np.arange(a.array.size).reshape(a.array.shape)
+        idx = np_sliding_window_view(idx, window_shape)
+        idx = idx.reshape(-1)
+        path_value = reshape(path_value, (-1))
+        return reshape(bincount(idx, path_value, a.array.size), a.array.shape)
 
     local_gradients = ((a, multiply_by_locgrad),)
 
