@@ -1,566 +1,262 @@
 """Tests for SmallPebble.
-
-These tests will generally compare the first and second 
-derivatives from SmallPebble's autodiff against numerical derivatives.
+Check results, and derivatives against numerical derivatives.
 """
-import numpy as np
-import tensorflow as tf
+import pytest
 import smallpebble as sp
+import tensorflow as tf
+
+np = sp.np
+
+EPS = 1e-6
 
 
-EPS = 1e-7
+@pytest.fixture(autouse=True)
+def set_np_seed():
+    np.random.seed(0)
+    yield
+
+
+class NumericalError(Exception):
+    pass
+
+
+def compare_results(args, sp_func, np_func, delta=1, eps=EPS):
+    """Compares:
+    - SmallPebble function output against NumPy function output.
+    - SmallPebble gradient against numerical gradient.
+
+    Notes: 
+    `delta` can be 1 for linear functions,
+    but should otherwise be a very small number.
+
+    `eps` may need to be adjusted, in the case of
+    inaccurate numerical approximations.
+    """
+    # Compute SmallPebble results
+    args_sp = [sp.Variable(a) for a in args]
+    y_sp = sp_func(*args_sp)
+    grads_sp = sp.get_gradients(y_sp)
+    grads_sp = [grads_sp[var] for var in args_sp]
+
+    # Compute numerical results
+    y_np = np_func(*args)
+    grads_np = numgrads(np_func, args, n=1, delta=delta)
+
+    # Compare output values
+    error = rmse(y_sp.array, y_np)
+    if error > eps:
+        raise NumericalError("function output rmse:", error)
+
+    # Compare gradient values
+    for i, (spval, npval) in enumerate(zip(grads_sp, grads_np)):
+        print()
+        print("spval", spval)
+        print("npval", npval)
+        error = rmse(spval, npval)
+        if error > eps:
+            raise NumericalError(f"arg[{i}] gradient rmse:", error)
+
+
+# ---------------- TEST OPS
 
 
 def test_add():
-    "Tests add, 1st and 2nd derivatives. Also implicitly: broadcasting, __add__."
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([4, 2, 3]))
-    b = sp.Variable(np.random.random([3, 4, 1, 2, 3]))
-    y = a + b
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
-        return a + b
-
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    args = [
+        np.random.random([20, 20]),
+        np.random.random([20, 20]),
+    ]
+    compare_results(args, sp.add, np.add)
 
 
-def test_add2():
-    "Tests add, 1st and 2nd derivatives. Also implicitly: broadcasting, __add__."
-    np.random.seed(0)
+def test_add_broadcast():
+    args = [
+        np.random.random([4, 2, 3]),
+        np.random.random([3, 4, 1, 2, 3]),
+    ]
+    compare_results(args, sp.add, np.add)
 
-    a = sp.Variable(np.array(4.0))
-    b = sp.Variable(np.random.random([3, 4, 1, 2, 3]))
-    y = a + b
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
 
-    def func(a, b):
-        return a + b
+def test_add_broadcast_scalar():
+    args = [
+        np.array(4.0),
+        np.random.random([3, 4, 1, 2, 3]),
+    ]
+    compare_results(args, sp.add, np.add)
 
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-3)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-3)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
 
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+def test_add_operator():
+    args = [
+        np.random.random([20, 20]),
+        np.random.random([20, 20]),
+    ]
+    func = lambda a, b: a + b
+    compare_results(args, func, func)
 
 
 def test_add_at():
-    np.random.seed(0)
+    len_a, len_b = 5, 10
+    args = [np.random.random([len_a]), np.random.random([len_b])]
+    indices = np.random.randint(0, len_a, size=[len_b])
+    sp_func = lambda a, b: sp.add_at(a, indices, b)
 
-    a = sp.Variable(np.random.random([5]))
-    indices = np.random.randint(0, len(a.array), size=[10])
-    b = sp.Variable(np.random.random([10]))
-    y = sp.add_at(a, indices, b)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
+    def np_func(a, b):
         result = a.copy()
         np.add.at(result, indices, b)
         return result
 
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    compare_results(args, sp_func, np_func)
 
 
-def test_div():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]) * 1000)
-    b = sp.Variable(np.random.random([4, 3, 1, 5]) * 1000)
-    y = a / b
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
-        return a / b
-
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-3)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-3)  # TODO work out why this fails
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+def test_div_broadcast_operator():
+    args = [np.random.random([3, 2, 5]) * 1000, np.random.random([4, 3, 1, 5]) * 2 + 1]
+    func = lambda a, b: a / b
+    compare_results(args, func, func, delta=1e-5)
 
 
-def test_exp():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
-    y = sp.exp(a)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.exp(a)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-4)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-4)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+def test_exponential():
+    args = [np.random.random([3, 2, 5])]
+    compare_results(args, sp.exp, np.exp, delta=1e-5)
 
 
 def test_expand_dims():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
+    args = [np.random.random([3, 2, 5])]
     axis = [3]
-    y = sp.expand_dims(a, axis=axis)
-
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.expand_dims(a, axis=axis)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    sp_func = lambda a: sp.expand_dims(a, axis)
+    np_func = lambda a: np.expand_dims(a, axis)
+    compare_results(args, sp_func, np_func)
 
 
 def test_getitem():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
+    args = [np.random.random([3, 2, 5])]
     indices = (slice(None), slice(1), (0, 2))
-    y = sp.getitem(a, indices)
+    sp_func = lambda a: sp.getitem(a, indices)
+    np_func = lambda a: a[indices]
+    compare_results(args, sp_func, np_func)
 
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
 
-    def func(a):
-        return a[indices]
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+def test_getitem_dunder():
+    args = [np.random.random([4, 5, 3])]
+    func = lambda a: a[0, :, 0:2]
+    compare_results(args, func, func)
 
 
 def test_log():
-    np.random.seed(0)
+    args = [
+        np.random.random([3, 2, 5]) * 100 + 1,
+    ]
+    compare_results(args, sp.log, np.log, delta=1e-5)
 
-    a = sp.Variable(100 * np.random.random([3, 2, 5]) + 100)
-    y = sp.log(a)
 
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.log(a)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+def test_leaky_relu():
+    args = [np.random.random([8, 8, 8]) * 10 - 5]
+    alpha = 0.1
+    sp_func = lambda a: sp.leaky_relu(a, alpha)
+    np_func = lambda a: np.maximum(a, a * alpha)
+    compare_results(args, sp_func, np_func, delta=1e-5)
 
 
 def test_matmul():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([2, 5]))
-    b = sp.Variable(np.random.random([5, 9]))
-    y = sp.matmul(a, b)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
-        return np.matmul(a, b)
-
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    args = [np.random.random([2, 5]), np.random.random([5, 9])]
+    compare_results(args, sp.matmul, np.matmul)
 
 
-def test_matmul2():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([2, 4, 3, 2, 5]))
-    b = sp.Variable(np.random.random([1, 3, 5, 9]))
-    y = sp.matmul(a, b)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
-        return np.matmul(a, b)
-
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+def test_matmul_broadcast():
+    args = [np.random.random([2, 4, 3, 2, 5]), np.random.random([1, 3, 5, 9])]
+    compare_results(args, sp.matmul, np.matmul)
 
 
-def test_matrix_tranpose():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
-    y = sp.matrix_transpose(a)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.swapaxes(a, -2, -1)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+def test_matrix_transpose():
+    args = [np.random.random([3, 2, 5])]
+    np_func = lambda a: np.swapaxes(a, -2, -1)
+    compare_results(args, sp.matrix_transpose, np_func)
 
 
 def test_maxax():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5, 4]))
+    args = [np.random.random([3, 2, 5, 4])]
     axis = -2
-    y = sp.maxax(a, axis)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.expand_dims(np.max(a, axis), axis)
-
-    y_np = func(a.array)
-    args = [a.array]
-    # Careful, delta could change the max value.
-    num_grads = numgrads(func, args, n=1, delta=1e-5)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-5)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    sp_func = lambda a: sp.maxax(a, axis)
+    np_func = lambda a: np.max(a, axis, keepdims=True)
+    compare_results(args, sp_func, np_func, delta=1e-5)
 
 
-def test_mul1():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([4, 1, 3, 2, 5]))
-    b = sp.Variable(np.random.random([1, 5, 3, 1, 5]))
-    y = a * b
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
-        return a * b
-
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-3)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-3)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+def test_mul_broadcast_operator():
+    args = [np.random.random([4, 1, 3, 2, 5]), np.random.random([5, 3, 1, 5])]
+    func = lambda a, b: a * b
+    compare_results(args, func, func)
 
 
-def test_mul2():
-    np.random.seed(0)
-
-    a = sp.Variable(np.array(3.2))
-    b = sp.Variable(np.random.random([3, 1, 2]))
-
-    y = a * b
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
-        return a * b
-
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-
-        assert error < EPS, f"rmse = {error}"
-
-
-def test_mul3():
-    np.random.seed(0)
-
-    a = sp.Variable(np.array([2.0, 3.0]))
-    b = sp.Variable(np.random.random([3, 1, 2]))
-
-    y = a * b
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
-        return a * b
-
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-
-        assert error < EPS, f"rmse = {error}"
+def test_neg_operator():
+    args = [np.random.random([5, 3, 1, 5])]
+    func = lambda a: -a
+    compare_results(args, func, func)
 
 
 def test_pad():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
+    args = [np.random.random([3, 2, 5])]
     pad_width = ((2, 1), (4, 4), (0, 1))
-    y = sp.pad(a, pad_width)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.pad(a, pad_width)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    sp_func = lambda a: sp.pad(a, pad_width)
+    np_func = lambda a: np.pad(a, pad_width)
+    compare_results(args, sp_func, np_func)
 
 
 def test_reshape():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
+    args = [np.random.random([3, 2, 5])]
     shape = (6, 5, 1)
-    y = sp.reshape(a, shape)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.reshape(a, shape)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    sp_func = lambda a: sp.reshape(a, shape)
+    np_func = lambda a: a.reshape(shape)
+    compare_results(args, sp_func, np_func)
 
 
 def test_setat():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
+    args = [
+        np.random.random([3, 2, 5]),
+        np.array(5),
+    ]
     indices = (slice(None), slice(1), (0, 2))
-    y = sp.setat(a, indices, sp.Variable(np.array(5.0)))
+    sp_func = lambda a, b: sp.setat(a, indices, b)
 
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
+    def np_func(a, b):
         result = a.copy()
-        result[indices] = 5
+        result[indices] = b
         return result
 
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
+    compare_results(args, sp_func, np_func)
 
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+
+def test_softmax():
+    args = [np.random.random([100, 10])]
+    np_func = lambda a: np.exp(a) / np.sum(np.exp(a), axis=-1, keepdims=True)
+    compare_results(args, sp.softmax, np_func, delta=1e-6, eps=1e-9)
 
 
 def test_square():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
-    y = sp.square(a)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return a ** 2
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-3)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-3)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    args = [np.random.random([3, 2, 5])]
+    compare_results(args, sp.square, np.square)
 
 
-def test_sub():
-    "Tests add, 1st and 2nd derivatives. Also implicitly, broadcasting, __add__."
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([4, 2, 3]))
-    b = sp.Variable(np.random.random([4, 1, 2, 3]))
-    y = a - b
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
-        return a - b
-
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+def test_sub_broadcast_operator():
+    args = [np.random.random([4, 2, 3]), np.random.random([4, 1, 2, 3])]
+    func = lambda a, b: a - b
+    compare_results(args, func, func)
 
 
 def test_sum():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
-    y = sp.sum(a)
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.sum(a)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    args = [np.random.random([4, 3, 2, 5])]
+    axis = (1, 3)
+    sp_func = lambda a: sp.sum(a, axis)
+    np_func = lambda a: np.sum(a, axis)
+    compare_results(args, sp_func, np_func)
 
 
 def test_where():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([4, 2, 3]))
-    b = sp.Variable(np.random.random([3, 4, 1, 2, 3]))
-    y = sp.where(a.array > b.array, a, b)
-
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    grad_b_2nd = sp.get_gradients(grads[b])[b]
-    sp_results = [y, grads[a], grads[b], grad_a_2nd, grad_b_2nd]
-
-    def func(a, b):
-        return np.where(a > b, a, b)
-
-    y_np = func(a.array, b.array)
-    args = [a.array, b.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-3)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-3)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
+    args = [
+        np.random.random([4, 2, 3]),
+        np.random.random([3, 4, 1, 2, 3]),
+    ]
+    condition = args[0] > args[1]
+    sp_func = lambda a, b: sp.where(condition, a, b)
+    np_func = lambda a, b: np.where(condition, a, b)
+    compare_results(args, sp_func, np_func)
 
 
 # ---------------- HIGHER OPS
@@ -603,6 +299,9 @@ def test_conv2d_grads():
     for stride in range(1, 11, 3):
         strides = [stride, stride]
         for padding in ["SAME", "VALID"]:
+            print("\n\n")
+            print(stride)
+            print(padding)
 
             # Calculate convolution and gradients with revdiff:
             result_sp = sp.conv2d(images_sp, kernels_sp, padding=padding, strides=strides)
@@ -621,57 +320,11 @@ def test_conv2d_grads():
             )
 
             # Compare the gradients:
-            imgrad_error = np.mean(np.abs(grad_images_sp.array - grad_images_tf))
+            imgrad_error = np.mean(np.abs(grad_images_sp - grad_images_tf))
             assert imgrad_error < EPS, f"Image gradient error = {imgrad_error}"
 
-            kerngrad_error = np.mean(np.abs(grad_kernels_sp.array - grad_kernels_tf))
+            kerngrad_error = np.mean(np.abs(grad_kernels_sp - grad_kernels_tf))
             assert kerngrad_error < EPS, f"Kernel gradient error = {kerngrad_error}"
-
-
-def test_conv2d_2nd_grads():
-    "Currently only checks that no error is thrown when computing."
-    images, kernels = generate_images_and_kernels([2, 33, 22, 5], [4, 7, 5, 2])
-    strides = [2, 3]
-
-    images_sp = sp.Variable(images)
-    kernels_sp = sp.Variable(kernels)
-    result_sp = sp.conv2d(images_sp, kernels_sp, strides=strides, padding="SAME")
-
-    first_derivatives = sp.get_gradients(result_sp)
-
-    images_sp_deriv1 = first_derivatives[images_sp]
-    images_sp_deriv2 = sp.get_gradients(images_sp_deriv1)[images_sp]
-
-    kernels_sp_deriv1 = first_derivatives[kernels_sp]
-    kernels_sp_deriv2 = sp.get_gradients(kernels_sp_deriv1)[kernels_sp]
-
-    assert np.sum(images_sp_deriv2.array) == 0
-    assert np.sum(kernels_sp_deriv2.array) == 0
-
-
-def test_lrelu():
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]))
-    alpha = 0.1
-    y = sp.lrelu(a, alpha)
-
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return np.maximum(a, a * alpha)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-6)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-6)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
 
 
 def test_maxpool2d():
@@ -700,59 +353,8 @@ def test_maxpool2d():
             assert results_error < EPS, f"Results error = {results_error}"
 
             # Compare gradients:
-            imgrad_error = np.mean(np.abs(grad_images_sp.array - grad_images_tf))
+            imgrad_error = np.mean(np.abs(grad_images_sp - grad_images_tf))
             assert imgrad_error < EPS, f"Gradient error = {imgrad_error}"
-
-
-def test_softmax():
-    "NOTE: lowered error tolerence, due to numerical errors."
-    np.random.seed(0)
-
-    a = sp.Variable(np.random.random([3, 2, 5]) * 150)
-    y = sp.softmax(a)
-
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        exp_a = np.exp(a)
-        return exp_a / np.sum(exp_a, axis=-1, keepdims=True)
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-6)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-6)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < 1e-4, f"rmse = {error}"
-
-
-# ---------------- MAGIC METHODS
-
-
-def test_magic_getitem():
-    a = sp.Variable(np.random.random([4, 5, 3]))
-    y = a[0, :, 0:2]
-
-    grads = sp.get_gradients(y)
-    grad_a_2nd = sp.get_gradients(grads[a])[a]
-    sp_results = [y, grads[a], grad_a_2nd]
-
-    def func(a):
-        return a[0, :, 0:2]
-
-    y_np = func(a.array)
-    args = [a.array]
-    num_grads = numgrads(func, args, n=1, delta=1e-6)
-    num_grads2 = numgrads(func, args, n=2, delta=1e-6)
-    num_results = [y_np, num_grads[0], num_grads2[0]]
-
-    for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
-        assert error < EPS, f"rmse = {error}"
 
 
 # ---------------- TEST DELAYED GRAPH EXECUTION
@@ -797,9 +399,7 @@ def test_operation_and_placeholder_gradients():
     result = y.run()
 
     grads = sp.get_gradients(result)
-    grad_a_2nd = sp.get_gradients(grads[a_sp])[a_sp]
-    grad_b_2nd = sp.get_gradients(grads[b_sp])[b_sp]
-    sp_results = [result, grads[a_sp], grads[b_sp], grad_a_2nd, grad_b_2nd]
+    sp_results = [result.array, grads[a_sp], grads[b_sp]]
 
     def func(a, b):
         return np.matmul(a, b)
@@ -807,11 +407,10 @@ def test_operation_and_placeholder_gradients():
     y_np = func(a_array, b_array)
     args = [a_array, b_array]
     num_grads = numgrads(func, args, n=1, delta=1)
-    num_grads2 = numgrads(func, args, n=2, delta=1)
-    num_results = [y_np, num_grads[0], num_grads[1], num_grads2[0], num_grads2[1]]
+    num_results = [y_np, num_grads[0], num_grads[1]]
 
     for spval, numval in zip(sp_results, num_results):
-        error = rmse(spval.array, numval)
+        error = rmse(spval, numval)
         assert error < EPS, f"rmse = {error}"
 
 
