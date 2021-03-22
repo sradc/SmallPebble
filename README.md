@@ -393,7 +393,8 @@ plt.show()
 ![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/res/output_21_1.png)
     
 
-...And we see some improvement, despite the model's small size, and the unsophisticated optimisation method.
+...And we see some improvement, despite the model's small size, the unsophisticated optimisation method 
+and the difficulty of the task.
 
 ---
 
