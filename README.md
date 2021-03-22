@@ -134,7 +134,7 @@ plt.show()
 
 
     
-![png](https://github.com/sradc/SmallPebble/blob/master/smallpebble/res/output_7_1.png)
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/res/output_7_1.png)
     
 
 
@@ -248,7 +248,7 @@ plt.show()
 
 
     
-![png](https://github.com/sradc/SmallPebble/blob/master/smallpebble/res/output_13_1.png)
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/res/output_13_1.png)
     
 
 
@@ -291,7 +291,7 @@ plt.show()
 
 
     
-![png](https://github.com/sradc/SmallPebble/blob/master/smallpebble/res/output_17_0.png)
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/res/output_17_0.png)
     
 
 
@@ -390,7 +390,7 @@ plt.show()
 
 
     
-![png](https://github.com/sradc/SmallPebble/blob/master/smallpebble/res/output_21_1.png)
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/res/output_21_1.png)
     
 
 
