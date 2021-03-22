@@ -36,7 +36,21 @@ def split_cifar(data):
     return X_train, y_train, X_test, y_test
 
 
-Metadata = namedtuple("Metadata", "filename npy url sha256 rows cols dtype splitdata")
+def preprocess_cifar(data):
+    "Move channel dimension to -1."
+    n = data.shape[0]
+    data[0:n, 0 : 32 * 32 * 3] = (
+        data[0:n, 0 : 32 * 32 * 3]
+        .reshape(n, 3, 32, 32)
+        .transpose([0, 2, 3, 1])
+        .reshape(n, -1)
+    )
+    return data
+
+
+Metadata = namedtuple(
+    "Metadata", "filename npy url sha256 rows cols dtype preprocess splitdata"
+)
 META = {
     "mnist": Metadata(
         "mnist_784.arff",
@@ -46,6 +60,7 @@ META = {
         rows=70_000,
         cols=28 * 28 + 1,
         dtype=np.uint8,
+        preprocess=lambda data: data,
         splitdata=split_mnist,
     ),
     "cifar": Metadata(
@@ -56,6 +71,7 @@ META = {
         rows=60_000,
         cols=32 * 32 * 3 + 1,
         dtype=np.uint8,
+        preprocess=preprocess_cifar,
         splitdata=split_cifar,
     ),
 }
@@ -145,6 +161,8 @@ def arff_to_npy(savedir, name):
     result = np.zeros([meta.rows, meta.cols], meta.dtype)
     for i, data in tqdm(enumerate(yield_data(savedir, name, meta.cols)), total=meta.rows):
         result[i, :] = data
+    assert i + 1 == result.shape[0], "Error converting data."
+    result = meta.preprocess(result)
     np.save(savedir / meta.npy, result)
     return result
 
