@@ -30,37 +30,19 @@ import math
 import numpy
 
 
-# ---------------- Enable switching between NumPy and CuPy dynamically.
-
-
 array_library = numpy  # numpy or cupy
 
 
 class ArrayLibraryProxy:
     """Enable switching between NumPy and CuPy dynamically.
-    
-    E.g.
-    import smallpebble as sp
-    import cupy
 
-    sp.array_library = cupy
+    >> import smallpebble as sp
+    >> import cupy
+    >> sp.array_library = cupy
     """
 
     def __getattribute__(self, name):
         return getattr(array_library, name)
-
-
-def np_add_at(a, indices, b):
-    """Apply either np.add.at or cupy.scatter_add (which are equivalent),
-    depending on which library is being used. 
-    Do this because CuPy has no cupy.add.at.
-    """
-    if array_library.__name__ == "numpy":
-        return array_library.add.at(a, indices, b)
-    elif array_library.__name__ == "cupy":
-        return array_library.scatter_add(a, indices, b)
-    else:
-        raise ValueError("Expected array_library.__name__ to be `numpy` or `cupy`.")
 
 
 np = ArrayLibraryProxy()
@@ -681,6 +663,16 @@ def patches_index(imheight, imwidth, kernheight, kernwidth, stride_y, stride_x):
     outheight, outwidth = patch_corners.shape
     n_patches = outheight * outwidth
     return index_of_patches, outheight, outwidth, n_patches
+
+
+def np_add_at(a, indices, b):
+    """Apply either numpy.add.at or cupy.scatter_add, depending on which library is used."""
+    if array_library.__name__ == "numpy":
+        array_library.add.at(a, indices, b)
+    elif array_library.__name__ == "cupy":
+        array_library.scatter_add(a, indices, b)
+    else:
+        raise ValueError("Expected array_library.__name__ to be `numpy` or `cupy`.")
 
 
 def np_sliding_window_view(x, window_shape):
