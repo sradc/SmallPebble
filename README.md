@@ -6,7 +6,7 @@
 
 <br><p align="center"><img src="pebbles.jpg" /></p><br>
 
-SmallPebble is a minimal/toy automatic differentation/deep learning library written from scratch in Python, using NumPy/CuPy.
+SmallPebble is a minimal/toy automatic differentiation/deep learning library written from scratch in Python, using NumPy/CuPy.
 
 The implementation is in [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py).
 
@@ -19,7 +19,7 @@ The implementation is in [smallpebble.py](https://github.com/sradc/SmallPebble/b
 - It's easy to add new SmallPebble functions.
 - GPU, if use CuPy.
 
-Graphs are built implicitely via Python objects referencing Python objects.
+Graphs are built implicitly via Python objects referencing Python objects.
 The only real step taken towards improving performance is to use NumPy/CuPy. 
 
 **Should I use this?**
@@ -52,7 +52,7 @@ Load the dataset, and create a validation set.
 X_train, y_train, _, _ = load_data('mnist')  # load / download from openml.org
 X_train = X_train/255
 
-# Seperate out data for validation.
+# Separate out data for validation.
 X = X_train[:50_000, ...]
 y = y_train[:50_000]
 X_eval = X_train[50_000:60_000, ...]
@@ -261,7 +261,7 @@ Load the dataset.
 X_train, y_train, _, _ = load_data('cifar')
 X_train = X_train/255
 
-# Seperate out some data for validation.
+# Separate out some data for validation.
 X = X_train[:45_000, ...]
 y = y_train[:45_000]
 X_eval = X_train[45_000:50_000, ...]
