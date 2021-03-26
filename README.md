@@ -553,7 +553,7 @@ for learnable in learnables:
 
 ## Switching between NumPy and CuPy
 
-We can dynamically switch between NumPy and CuPy:
+To dynamically switch between NumPy and CuPy:
 
 ```python
 import cupy
