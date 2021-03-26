@@ -6,7 +6,7 @@
 
 <br><p align="center"><img src="pebbles.jpg" /></p><br>
 
-SmallPebble is a minimal/toy automatic differentiation/deep learning library written from scratch in Python, using NumPy/CuPy.
+SmallPebble is a minimal automatic differentiation and deep learning library written from scratch in Python, using NumPy/CuPy.
 
 The implementation is in [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py).
 
