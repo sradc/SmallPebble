@@ -49,7 +49,7 @@ np = ArrayLibraryProxy()
 class Variable:
     "To be used in calculations to be differentiated."
 
-    def __init__(self, array, local_gradients=[]):
+    def __init__(self, array, local_gradients=()):
         self.array = array
         self.local_gradients = local_gradients
 
