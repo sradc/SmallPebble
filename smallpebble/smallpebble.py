@@ -346,7 +346,7 @@ def strided_sliding_view(a, window_shape, strides):
 
     def multiply_by_locgrad(path_value):  # TODO: a faster method
         result = np.zeros(a.shape, a.dtype)
-        np.add.at(np_strided_sliding_view(result, window_shape, strides), None, path_value)
+        np_add_at(np_strided_sliding_view(result, window_shape, strides), None, path_value)
         return result
 
     local_gradients = [(a, multiply_by_locgrad)]
