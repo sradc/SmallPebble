@@ -613,9 +613,9 @@ def np_strided_sliding_view(x, window_shape: tuple, strides: tuple):
     """
     # Need the checks, because as_strided is not memory safe.
     if not len(window_shape) == x.ndim:
-        raise ValueError(f"Must provide a window size for each dimension of x.")
+        raise ValueError(f"Must provide one window size for each dimension of x.")
     if not len(strides) == x.ndim:
-        raise ValueError(f"Must provide a stride size for each dimension of x.")
+        raise ValueError(f"Must provide one stride size for each dimension of x.")
     if any(size < 0 for size in window_shape):
         raise ValueError("`window_shape` cannot contain negative values")
     if any(stride < 0 for stride in strides):
