@@ -49,10 +49,6 @@ def compare_results(args, sp_func, np_func, delta=1, eps=EPS):
 
     # Compare gradient values
     for i, (spval, npval) in enumerate(zip(grads_sp, grads_np)):
-        print()
-        print("spval", spval)
-        print("npval", npval)
-        error = rmse(spval, npval)
         if error > eps:
             raise NumericalError(f"arg[{i}] gradient rmse:", error)
 
