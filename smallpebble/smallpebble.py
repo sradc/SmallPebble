@@ -20,33 +20,7 @@ See https://sidsite.com/posts/autodiff/
 from collections import defaultdict
 import math
 import numpy
-
-
-# ----------------
-# ---------------- ARRAY LIBRARY SWITCHING
-# ----------------
-# Allow NumPy/CuPy to be switched at runtime. E.g:
-# >> import smallpebble as sp
-# >> import cupy
-# >> sp.array_library = cupy
-#
-# Uses NumPy as default.
-# Watch out for cases where NumPy and CuPy differ,
-# e.g. np.add.at is cupy.scatter_add.
-
-array_library = numpy  # numpy or cupy
-
-
-def get_array_library():
-    return array_library
-
-
-class ArrayLibraryProxy:
-    def __getattribute__(self, name):
-        return getattr(get_array_library(), name)
-
-
-np = ArrayLibraryProxy()  # Can be used as if it is NumPy.
+import smallpebble.array_library as np
 
 
 # ----------------
@@ -627,12 +601,12 @@ def broadcastinfo(a_shape, b_shape):
 
 def np_add_at(a, indices, b):
     "Apply either numpy.add.at or cupy.scatter_add, depending on which library is used."
-    if array_library.__name__ == "numpy":
-        array_library.add.at(a, indices, b)
-    elif array_library.__name__ == "cupy":
-        array_library.scatter_add(a, indices, b)
+    if np.library.__name__ == "numpy":
+        np.add.at(a, indices, b)
+    elif np.library.__name__ == "cupy":
+        np.scatter_add(a, indices, b)
     else:
-        raise ValueError("Expected array_library.__name__ to be `numpy` or `cupy`.")
+        raise ValueError("Expected np.library.__name__ to be `numpy` or `cupy`.")
 
 
 def np_strided_sliding_view(x, window_shape: tuple, strides: tuple):
