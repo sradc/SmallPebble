@@ -22,21 +22,31 @@ import math
 import numpy
 
 
+# ----------------
+# ---------------- ARRAY LIBRARY SWITCHING
+# ----------------
+# Allow NumPy/CuPy to be switched at runtime. E.g:
+# >> import smallpebble as sp
+# >> import cupy
+# >> sp.array_library = cupy
+#
+# Uses NumPy as default.
+# Watch out for cases where NumPy and CuPy differ,
+# e.g. np.add.at is cupy.scatter_add.
+
+array_library = numpy  # numpy or cupy
+
+
+def get_array_library():
+    return array_library
+
+
 class ArrayLibraryProxy:
-    """Enable switching between NumPy and CuPy dynamically.
-
-    E.g.
-    >> import smallpebble as sp
-    >> import cupy
-    >> sp.array_library = cupy
-    """
-
     def __getattribute__(self, name):
-        return getattr(array_library, name)
+        return getattr(get_array_library(), name)
 
 
-array_library = numpy
-np = ArrayLibraryProxy()
+np = ArrayLibraryProxy()  # Can be used as if it is NumPy.
 
 
 # ----------------
