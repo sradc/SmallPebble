@@ -551,13 +551,11 @@ def onehot(y, n_classes) -> np.array:
     return result
 
 
-def sgd_step(variables, gradients, gamma) -> None:
-    """Carry out a single step of gradient descent.
-    Modifies variable.array directly.
-    """
+def sgd_step(variables, gradients, learning_rate) -> None:
+    "A single step of gradient descent. Modifies each variable.array directly."
     for variable in variables:
         gradient = gradients[variable]
-        variable.array -= gamma * gradient
+        variable.array -= learning_rate * gradient
 
 
 # ---------------- UTIL
