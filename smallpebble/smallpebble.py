@@ -385,12 +385,16 @@ def where(condition, a, b):
 
     def multiply_by_locgrad_a(path_value):
         return np.where(
-            condition, path_value, np.zeros(path_value.shape, dtype=a.array.dtype),
+            condition,
+            path_value,
+            np.zeros(path_value.shape, a.array.dtype),
         )
 
     def multiply_by_locgrad_b(path_value):
         return np.where(
-            condition, np.zeros(path_value.shape, dtype=a.array.dtype), path_value,
+            condition,
+            np.zeros(path_value.shape, a.array.dtype),
+            path_value,
         )
 
     local_gradients = [
@@ -435,7 +439,7 @@ class AssignmentError(Exception):
 class Lazy:
     """A lazy node, for creating lazy graphs, that are only
     evaluated with .run() is called.
-    
+
     Example:
     >> a = sp.Placeholder()
     >> b = sp.Variable(np.ones([4, 2]))
@@ -451,7 +455,7 @@ class Lazy:
 
     def __call__(self, *args):
         """Set self.arguments, i.e. the child nodes of this lazy node.
-        
+
         *args: Nodes that `function` will take as input;
             either sp.Variable or sp.Lazy instances.
         """
@@ -598,7 +602,7 @@ def np_add_at(a, indices, b):
 def np_strided_sliding_view(x, window_shape: tuple, strides: tuple):
     """Similar to np.sliding_window_view [1], but with strides,
     (the unit of strides is index number, not bytes).
-        
+
     Args:
         x: an n-dimensional array.
         window_shape: a window size, for each dimension of x.
@@ -606,8 +610,8 @@ def np_strided_sliding_view(x, window_shape: tuple, strides: tuple):
         rather than ndarray.strides.
     Returns:
         A view into x, based on the window size.
-    
-    [1] https://github.com/numpy/numpy/blob/main/numpy/lib/stride_tricks.py    
+
+    [1] https://github.com/numpy/numpy/blob/main/numpy/lib/stride_tricks.py
     """
     # Need the checks, because as_strided is not memory safe.
     if not len(window_shape) == x.ndim:
@@ -652,7 +656,12 @@ def padding2d(
         pad_left, pad_right = pad_amounts(imwidth, stride_x, kernwidth)
         images = pad(
             images,
-            pad_width=[(0, 0), (pad_top, pad_bottom), (pad_left, pad_right), (0, 0),],
+            pad_width=[
+                (0, 0),
+                (pad_top, pad_bottom),
+                (pad_left, pad_right),
+                (0, 0),
+            ],
         )
         _, imheight, imwidth, _ = images.array.shape
     elif padding == "VALID":
@@ -674,4 +683,3 @@ def patches_index(imheight, imwidth, kernheight, kernwidth, stride_y, stride_x):
     outheight, outwidth = patch_corners.shape
     n_patches = outheight * outwidth
     return index_of_patches, outheight, outwidth, n_patches
-
