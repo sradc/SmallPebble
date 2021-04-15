@@ -431,7 +431,47 @@ def test_learnable_and_get_learnables():
     assert params == [param_1, param_2], "Did not get params."
 
 
-# ---------------- UTILS
+# ---------------- NEURAL NETWORKS
+
+def test_adam():
+    a = sp.Variable(np.random.random([3, 5]))
+    b = sp.Variable(np.random.random([5, 3]))
+    y_true = sp.Variable(np.ones([3, 3]))
+
+    adam = sp.Adam()
+    losses = []
+    for _ in range(100):
+        y_pred = sp.matmul(a, b)
+        loss = sp.sum(sp.square(y_true - y_pred))
+        losses.append(loss.array)
+        
+        gradients = sp.get_gradients(loss)
+        adam.training_step([a, b], gradients)
+    
+    assert np.all(np.diff(losses) < 0), 'Not converging.'
+
+
+
+def test_sgd_step():
+    a = sp.Variable(np.random.random([3, 5]))
+    b = sp.Variable(np.random.random([5, 3]))
+    y_true = sp.Variable(np.ones([3, 3]))
+
+    losses = []
+    for _ in range(100):
+        y_pred = sp.matmul(a, b)
+        loss = sp.sum(sp.square(y_true - y_pred))
+        losses.append(loss.array)
+        
+        gradients = sp.get_gradients(loss)
+        sp.sgd_step([a, b], gradients)
+    
+    assert np.all(np.diff(losses) < 0), 'Not converging.'
+
+
+
+
+# ---------------- UTIL
 
 
 def numgrads(func, args, n=1, delta=1e-6):

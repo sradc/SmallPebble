@@ -512,6 +512,32 @@ def get_learnables(lazy_node):
 # Helper functions for creating neural networks.
 
 
+class Adam:
+    """Adam optimization for SmallPebble variables.
+    See Algorithm 1, https://arxiv.org/abs/1412.6980
+    Kingma, Ba. Adam: A Method for Stochastic Optimization. 2017.
+    """
+
+    def __init__(self, alpha=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
+        self.alpha = alpha
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.eps = eps
+        self.t = defaultdict(lambda: 0)
+        self.m = defaultdict(lambda: 0)
+        self.v = defaultdict(lambda: 0)
+
+    def training_step(self, variables, gradients):
+        for variable in variables:
+            self.t[variable] += 1
+            g = gradients[variable]
+            self.m[variable] = self.beta1 * self.m[variable] + (1 - self.beta1) * g
+            self.v[variable] = self.beta2 * self.v[variable] + (1 - self.beta2) * g ** 2
+            m_ = self.m[variable] / (1 - self.beta1 ** self.t[variable])
+            v_ = self.v[variable] / (1 - self.beta2 ** self.t[variable])
+            variable.array = variable.array - self.alpha * m_ / (np.sqrt(v_) + self.eps)
+
+
 def batch(X, y, size, seed=None):
     "Yield sub-batches of X,y, randomly selecting with replacement."
     assert (y.ndim == 1) and (X.shape[0] == y.size), "unexpected dimensions."
