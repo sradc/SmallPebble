@@ -219,13 +219,22 @@ def matrix_transpose(a):
 
 def maxax(a, axis):
     "Reduce an axis, `axis`, to its max value."
-    max_idx = np.argmax(a.array, axis)
-    max_idx = np.expand_dims(max_idx, axis)
-    value = np.take_along_axis(a.array, max_idx, axis)
+    # Note, implementation now more complicated because CuPy doesn't have put_along_axis.
+    axis = axis if axis >= 0 else a.ndim + axis
+    value = np.swapaxes(a.array, axis, -1)
+    value = value.reshape([-1, value.shape[-1]])
+    flatshape = value.shape
+    idx = np.argmax(value, axis=-1)
+    value = np.take_along_axis(value, idx[..., np.newaxis], -1)
+    value = value.reshape(tuple(1 if i == axis else v for i, v in enumerate(a.shape)))
 
     def multiply_by_locgrad(path_value):
-        result = np.zeros(a.array.shape)
-        np.put_along_axis(result, max_idx, np.array(1, a.array.dtype), axis)
+        result = np.zeros(flatshape)
+        result[np.arange(result.shape[0]), idx] = 1
+        swapped_shape = list(a.shape)
+        swapped_shape[axis], swapped_shape[-1] = swapped_shape[-1], swapped_shape[axis]
+        result = result.reshape(swapped_shape)
+        result = np.swapaxes(result, axis, -1)
         return path_value * result
 
     local_gradients = ((a, multiply_by_locgrad),)
