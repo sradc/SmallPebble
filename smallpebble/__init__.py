@@ -1,3 +1,4 @@
+from smallpebble.array_library import use
 from smallpebble.smallpebble import *
 from smallpebble.version import version
 
