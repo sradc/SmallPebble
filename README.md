@@ -1,68 +1,91 @@
+
 # SmallPebble
 
 [![](https://github.com/sradc/smallpebble/workflows/Python%20package/badge.svg)](https://github.com/sradc/smallpebble/commits/) 
 
-**Project status: experimental, unstable.**
+**Project status: unstable.**
 
-<br><p align="center"><img src="pebbles.jpg" /></p><br>
+<br><p align="center"><img src="https://raw.githubusercontent.com/sradc/SmallPebble/master/pebbles.jpg"/></p><br>
 
-SmallPebble is a minimal automatic differentiation and deep learning library written from scratch in Python, using NumPy/CuPy.
+SmallPebble is a minimal automatic differentiation and deep learning library written from scratch in [Python](https://www.python.org/), using [NumPy](https://numpy.org/)/[CuPy](https://cupy.dev/).
 
-The implementation is in [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py).
+The implementation is relatively small, and mainly in the file: [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py). To help understand it, check out [this](https://sidsite.com/posts/autodiff/) introduction to autodiff, which presents an autodiff framework that works in the same way as SmallPebble (except using scalars instead of NumPy arrays).
 
-**Features:**
+SmallPebble's *raison d'etre* is to be a simplified deep learning implementation,
+for those who want to learn what’s under the hood of deep learning frameworks.
+However, because it is written in terms of vectorised NumPy/CuPy operations,
+it performs well enough for non-trivial models to be trained using it.
+
+**Highlights**
 - Relatively simple implementation.
-- Powerful API for creating models.
+- Can run on GPU, using CuPy.
 - Various operations, such as matmul, conv2d, maxpool2d.
-- Broadcasting support.
+- Array broadcasting support.
 - Eager or lazy execution.
+- Powerful API for creating models.
 - It's easy to add new SmallPebble functions.
-- GPU, if use CuPy.
+
+
+**Notes**
 
 Graphs are built implicitly via Python objects referencing Python objects.
-The only real step taken towards improving performance is to use NumPy/CuPy. 
-
-**Should I use this?**
-
-You probably want a more efficient and featureful framework, such as JAX, PyTorch, TensorFlow, etc.
-
-**Read on to see:**
-- Examples of deep learning models created and trained using SmallPebble.
-- A brief guide to using SmallPebble.
-
-For an introduction to autodiff and an even more minimal autodiff implementation, look [here](https://sidsite.com/posts/autodiff/).
+When `get_gradients` is called, autodiff is carried out on the whole sub-graph. The default array library is NumPy.
 
 ---
+
+**Read on to see:**
+- Example models created and trained using SmallPebble.
+- A brief guide to using SmallPebble.
+
 
 
 ```python
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm.notebook import tqdm
 import smallpebble as sp
 from smallpebble.misc import load_data
-from tqdm import tqdm
 ```
 
-## Training a neural network on MNIST
-
-Load the dataset, and create a validation set.
+## Training a neural network to classify handwritten digits (MNIST)
 
 
 ```python
-X_train, y_train, _, _ = load_data('mnist')  # load / download from openml.org
-X_train = X_train/255
+"Load the dataset, and create a validation set."
 
-# Separate out data for validation.
+X_train, y_train, _, _ = load_data('mnist')  # load / download from openml.org
+X_train = X_train/255  # normalize
+
+# Seperate out data for validation.
 X = X_train[:50_000, ...]
 y = y_train[:50_000]
 X_eval = X_train[50_000:60_000, ...]
 y_eval = y_train[50_000:60_000]
 ```
 
-Build a model.
+
+```python
+"Plot, to check we have the right data."
+
+plt.figure(figsize=(5,5))
+for i in range(25):
+    plt.subplot(5,5,i+1)
+    plt.xticks([])
+    plt.yticks([])
+    plt.grid(False)
+    plt.imshow(X_train[i,:].reshape(28,28), cmap='gray', vmin=0, vmax=1)
+
+plt.show()
+```
+
+
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_4_0.png)
+
 
 
 ```python
+"Create a model, with two fully connected hidden layers."
+
 X_in = sp.Placeholder()
 y_true = sp.Placeholder()
 
@@ -80,17 +103,18 @@ loss_vals = []
 validation_acc = []
 ```
 
-Train model, and measure performance on validation dataset.
-
 
 ```python
-NUM_EPOCHS = 300
+"Train model, while measuring performance on the validation dataset."
+
+NUM_ITERS = 300
 BATCH_SIZE = 200
 
 eval_batch = sp.batch(X_eval, y_eval, BATCH_SIZE)
+adam = sp.Adam()  # Adam optimization
 
 for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM_EPOCHS):
-    if i > NUM_EPOCHS: break
+    if i >= NUM_ITERS: break
     
     X_in.assign_value(sp.Variable(xbatch))
     y_true.assign_value(ybatch)
@@ -101,9 +125,9 @@ for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM
         break
     loss_vals.append(loss_val.array)
         
-    # Compute gradients, and carry out learning step.
+    # Compute gradients, and use to carry out learning step:
     gradients = sp.get_gradients(loss_val)
-    sp.sgd_step(learnables, gradients, 3e-4)
+    adam.training_step(learnables, gradients)
         
     # Compute validation accuracy:
     x_eval_batch, y_eval_batch = next(eval_batch)
@@ -113,166 +137,46 @@ for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM
     accuracy = (y_eval_batch == predictions).mean()
     validation_acc.append(accuracy)
 
+# Plot results:
+print(f'Final validation accuracy: {validation_acc[-10].mean()}')
 plt.figure(figsize=(14, 4))
 plt.subplot(1, 2, 1)
-plt.title('Loss')
 plt.ylabel('Loss')
-plt.xlabel('Epoch')
+plt.xlabel('Iteration')
 plt.plot(loss_vals)
 plt.subplot(1, 2, 2)
-plt.title('Validation accuracy')
-plt.ylabel('Accuracy')
-plt.xlabel('Epoch')
+plt.ylabel('Validation accuracy')
+plt.xlabel('Iteration')
 plt.suptitle('Neural network trained on MNIST, using SmallPebble.')
 plt.ylim([0, 1])
 plt.plot(validation_acc)
 plt.show()
 ```
 
-    301it [00:03, 94.26it/s]                         
+    Final validation accuracy: 0.935
 
 
 
-    
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/res/output_7_1.png)
-    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_6_2.png)
 
 
-## Training a convolutional neural network on MNIST
-
-Make a function that creates trainable convolutional layers:
+## Training a convolutional neural network on CIFAR-10, using CuPy
+This was run on [Google Colab](https://colab.research.google.com/), with a GPU (for ~10-15 mins).
 
 
 ```python
-def convlayer(height, width, depth, n_kernels, strides=[1,1]):
-    # Initialise kernels:
-    sigma = np.sqrt(6 / (height*width*depth+height*width*n_kernels))
-    kernels_init = sigma*(np.random.random([height, width, depth, n_kernels]) - .5)
-    # Wrap with sp.Variable, so we can compute gradients:
-    kernels = sp.Variable(kernels_init)
-    # Flag as learnable, so we can extract from the model to train:
-    kernels = sp.learnable(kernels)
-    # Curry, to set `strides`:
-    func = lambda images, kernels: sp.conv2d(images, kernels, strides=strides, padding='SAME')
-    # Curry, to use the kernels created here:
-    return lambda images: sp.Lazy(func)(images, kernels)
-```
+"Load the CIFAR dataset."
 
-Define a model.
-
-
-```python
-X_in = sp.Placeholder()
-y_true = sp.Placeholder()
-
-h = convlayer(height=3, width=3, depth=1, n_kernels=16)(X_in)
-h = sp.Lazy(sp.leaky_relu)(h)
-h = sp.Lazy(lambda a: sp.maxpool2d(a, 2, 2, strides=[2, 2]))(h)
-
-h = sp.Lazy(lambda x: sp.reshape(x, [-1, 14*14*16]))(h)
-h = sp.linearlayer(14*14*16, 64)(h)
-h = sp.Lazy(sp.leaky_relu)(h)
-
-h = sp.linearlayer(64, 10)(h)
-y_pred = sp.Lazy(sp.softmax)(h)
-loss = sp.Lazy(sp.cross_entropy)(y_pred, y_true)
-
-learnables = sp.get_learnables(y_pred)
-
-loss_vals = []
-validation_acc = []
-
-# Check we get the dimensions we expected.
-X_in.assign_value(sp.Variable(X_train[0:3,:].reshape([-1,28,28,1])))
-y_true.assign_value(y_train[0])
-h.run().array.shape
+X_train, y_train, _, _ = load_data('cifar')  # load/download from openml.org
+X_train = X_train/255  # normalize
 ```
 
 
-
-
-    (3, 10)
-
-
-
-
 ```python
-NUM_EPOCHS = 300
-BATCH_SIZE = 200
+"""Plot, to check it's the right data.
 
-eval_batch = sp.batch(X_eval.reshape([-1,28,28,1]), y_eval, BATCH_SIZE)
-
-for i, (xbatch, ybatch) in tqdm(
-    enumerate(sp.batch(X.reshape([-1,28,28,1]), y, BATCH_SIZE)), total=NUM_EPOCHS):
-    if i > NUM_EPOCHS: break
-    
-    X_in.assign_value(sp.Variable(xbatch))
-    y_true.assign_value(ybatch)
-    
-    loss_val = loss.run()
-    if np.isnan(loss_val.array):
-        print("Aborting, loss is nan.")
-        break
-    loss_vals.append(loss_val.array)
-        
-    # Compute gradients, and carry out learning step.
-    gradients = sp.get_gradients(loss_val)
-    sp.sgd_step(learnables, gradients, 3e-4)
-        
-    # Compute validation accuracy:
-    x_eval_batch, y_eval_batch = next(eval_batch)
-    X_in.assign_value(sp.Variable(x_eval_batch))
-    predictions = y_pred.run()
-    predictions = np.argmax(predictions.array, axis=1)
-    accuracy = (y_eval_batch == predictions).mean()
-    validation_acc.append(accuracy)
-
-plt.figure(figsize=(14, 4))
-plt.subplot(1, 2, 1)
-plt.title('Loss')
-plt.ylabel('Loss')
-plt.xlabel('Epoch')
-plt.plot(loss_vals)
-plt.subplot(1, 2, 2)
-plt.title('Validation accuracy')
-plt.ylabel('Accuracy')
-plt.xlabel('Epoch')
-plt.suptitle('CNN trained on MNIST, using SmallPebble.')
-plt.ylim([0, 1])
-plt.plot(validation_acc)
-plt.show()
-```
-
-    301it [03:35,  1.40it/s]                         
-
-
-
-    
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/res/output_13_1.png)
-    
-
-
-## Training a CNN on CIFAR
-
-Load the dataset.
-
-
-```python
-X_train, y_train, _, _ = load_data('cifar')
-X_train = X_train/255
-
-# Separate out some data for validation.
-X = X_train[:45_000, ...]
-y = y_train[:45_000]
-X_eval = X_train[45_000:50_000, ...]
-y_eval = y_train[45_000:50_000]
-```
-
-Plot, to check it's the right data.
-
-
-```python
-# This code is from: https://www.tensorflow.org/tutorials/images/cnn
+(This cell's code is from: https://www.tensorflow.org/tutorials/images/cnn#verify_the_data)
+"""
 
 class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
                'dog', 'frog', 'horse', 'ship', 'truck']
@@ -283,38 +187,65 @@ for i in range(25):
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
-    plt.imshow(X_train[i,:].reshape(32,32,3), cmap=plt.cm.binary)
+    plt.imshow(X_train[i,:].reshape(32,32,3))
     plt.xlabel(class_names[y_train[i]])
 
 plt.show()
 ```
 
 
-    
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/res/output_17_0.png)
-    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_9_0.png)
 
-
-Define the model. Due to my lack of ram, it is kept relatively small.
 
 
 ```python
+"Switch array library to CuPy, so can use GPU."
+
+import cupy
+
+sp.use(cupy)
+
+print(sp.array_library.library.__name__)  # should be 'cupy'
+```
+
+    cupy
+
+
+
+```python
+"Convert data to CuPy arrays"
+
+X_train = cupy.array(X_train)
+y_train = cupy.array(y_train)
+
+# Seperate out data for validation as before.
+X = X_train[:45_000, ...]
+y = y_train[:45_000]
+X_eval = X_train[45_000:50_000, ...]
+y_eval = y_train[45_000:50_000]
+```
+
+
+```python
+"Define a model."
+
 X_in = sp.Placeholder()
 y_true = sp.Placeholder()
 
-h = convlayer(height=3, width=3, depth=3, n_kernels=16)(X_in)
+h = sp.convlayer(height=3, width=3, depth=3, n_kernels=32)(X_in)
 h = sp.Lazy(sp.leaky_relu)(h)
 h = sp.Lazy(lambda a: sp.maxpool2d(a, 2, 2, strides=[2, 2]))(h)
 
-h = convlayer(height=3, width=3, depth=16, n_kernels=32)(h)
+h = sp.convlayer(3, 3, 32, 128, padding='VALID')(h)
 h = sp.Lazy(sp.leaky_relu)(h)
 h = sp.Lazy(lambda a: sp.maxpool2d(a, 2, 2, strides=[2, 2]))(h)
 
-h = sp.Lazy(lambda x: sp.reshape(x, [-1, 8*8*32]))(h)
-h = sp.linearlayer(8*8*32, 64)(h)
+h = sp.convlayer(3, 3, 128, 128, padding='VALID')(h)
 h = sp.Lazy(sp.leaky_relu)(h)
+h = sp.Lazy(lambda a: sp.maxpool2d(a, 2, 2, strides=[2, 2]))(h)
 
-h = sp.linearlayer(64, 10)(h)
+h = sp.Lazy(lambda x: sp.reshape(x, [-1, 3*3*128]))(h)
+h = sp.linearlayer(3*3*128, 10)(h)
 h = sp.Lazy(sp.softmax)(h)
 
 y_pred = h
@@ -341,13 +272,14 @@ Train the model.
 
 
 ```python
-NUM_EPOCHS = 3000
-BATCH_SIZE = 32
+NUM_ITERS = 3000
+BATCH_SIZE = 128
 
 eval_batch = sp.batch(X_eval, y_eval, BATCH_SIZE)
+adam = sp.Adam()
 
 for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM_EPOCHS):
-    if i > NUM_EPOCHS: break
+    if i >= NUM_ITERS: break
        
     xbatch_images = xbatch.reshape([-1, 32, 32, 3])
     X_in.assign_value(sp.Variable(xbatch_images))
@@ -361,8 +293,8 @@ for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM
     
     # Compute gradients, and carry out learning step.
     gradients = sp.get_gradients(loss_val)  
-    sp.sgd_step(learnables, gradients, 3e-3)
-          
+    adam.training_step(learnables, gradients)
+    
     # Compute validation accuracy:
     x_eval_batch, y_eval_batch = next(eval_batch)
     X_in.assign_value(sp.Variable(x_eval_batch.reshape([-1, 32, 32, 3])))
@@ -371,30 +303,29 @@ for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM
     accuracy = (y_eval_batch == predictions).mean()
     validation_acc.append(accuracy)
 
+print(f'Final validation accuracy: {validation_acc[-10].mean()}')
 plt.figure(figsize=(14, 4))
 plt.subplot(1, 2, 1)
-plt.title('Loss')
 plt.ylabel('Loss')
-plt.xlabel('Epoch')
+plt.xlabel('Iteration')
 plt.plot(loss_vals)
 plt.subplot(1, 2, 2)
-plt.title('Validation accuracy')
-plt.ylabel('Accuracy')
-plt.xlabel('Epoch')
+plt.ylabel('Validation accuracy')
+plt.xlabel('Iteration')
+plt.suptitle('CNN trained on CIFAR-10, using SmallPebble.')
+plt.ylim([0, 1])
 plt.plot(validation_acc)
 plt.show()
 ```
 
-    3001it [25:16,  1.98it/s]                            
+    Final validation accuracy: 0.6640625
 
 
 
-    
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/res/output_21_1.png)
-    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_14_2.png)
 
-...And we see some improvement, despite the model's small size, the unsophisticated optimisation method 
-and the difficulty of the task.
+
+It looks like we could improve our results by training for longer (and of course we could improve our model architecture).
 
 ---
 
@@ -403,7 +334,7 @@ and the difficulty of the task.
 SmallPebble provides the following building blocks to make models with:
 
 - `sp.Variable`
-- SmallPebble operations, such as `sp.add`, `sp.mul`, etc.
+- Operations, such as `sp.add`, `sp.mul`, etc.
 - `sp.get_gradients`
 - `sp.Lazy`
 - `sp.Placeholder` (this is really just `sp.Lazy` on the identity function)
@@ -411,6 +342,30 @@ SmallPebble provides the following building blocks to make models with:
 - `sp.get_learnables`
 
 The following examples show how these are used.
+
+
+## Switching between NumPy and CuPy
+
+We can dynamically switch between NumPy and CuPy. (Assuming you have a CuPy compatible GPU and CuPy set up. Note, CuPy is available on Google Colab, if you change the runtime to GPU.)
+
+
+```python
+import cupy
+import numpy
+import smallpebble as sp
+ 
+# Switch to CuPy
+sp.use(cupy)
+print(sp.array_library.library.__name__)  # should be 'cupy'
+
+# Switch back to NumPy:
+sp.use(numpy)
+print(sp.array_library.library.__name__)  # should be 'numpy'
+```
+
+    cupy
+    numpy
+
 
 ## sp.Variable & sp.get_gradients 
 
@@ -438,14 +393,14 @@ print('grad_c:\n', grad_c)
 ```
 
     y.array:
-     [[0.50222439 0.67745659]
-     [0.68666171 0.58330707]]
+     [[0.83571629 1.04060209]
+     [0.83590755 0.76613642]]
     grad_a:
-     [[0.56436821 0.2581522 ]
-     [0.89043144 0.25750461]]
+     [[0.29385811 0.41138988]
+     [0.28457185 0.00655705]]
     grad_b:
-     [[0.11665152 0.85303194]
-     [0.28106794 0.48955456]]
+     [[0.15671755 0.67454729]
+     [0.16250373 0.46305269]]
     grad_c:
      [2. 2.]
 
@@ -465,7 +420,7 @@ print(lazy_node)
 print(lazy_node.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x7fbc92d58d50>
+    <smallpebble.smallpebble.Lazy object at 0x7fbb90b9db50>
     3
 
 
@@ -477,7 +432,7 @@ print(y)
 print(y.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x7fbc92d41d50>
+    <smallpebble.smallpebble.Lazy object at 0x7fbb90b6b910>
     10
 
 
@@ -496,8 +451,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[1.01817665 2.54693119]
-     [2.42244218 5.69810698]]
+     [[0.85771129 1.28521573]
+     [1.95373653 2.6991665 ]]
 
 
 You can use .run() as many times as you like. 
@@ -512,8 +467,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[10.18176654 25.46931189]
-     [24.22442177 56.98106985]]
+     [[ 8.57711288 12.85215729]
+     [19.53736528 26.99166502]]
 
 
 Finally, let's compute gradients:
@@ -531,7 +486,7 @@ not on `y`, which is a `sp.Lazy` instance.
 Use `sp.learnable` to flag parameters as learnable, 
 allowing them to be extracted from a lazy graph with `sp.get_learnables`.
 
-This enables the workflow of building a model, while flagging parameters as learnable, and then extracting all the parameters in one go at the end.
+This enables a workflow of: building a model, while flagging parameters as learnable, and then extracting all the parameters in one go at the end.
 
 
 
@@ -547,22 +502,6 @@ for learnable in learnables:
     print(learnable)
 ```
 
-    <smallpebble.smallpebble.Variable object at 0x7fbc60b6ebd0>
-    <smallpebble.smallpebble.Variable object at 0x7fbc60b6ec50>
+    <smallpebble.smallpebble.Variable object at 0x7fbb3028c090>
+    <smallpebble.smallpebble.Variable object at 0x7fbb90ba8b10>
 
-
-## Switching between NumPy and CuPy
-
-To dynamically switch between NumPy and CuPy:
-
-```python
-import cupy
-import numpy
-import smallpebble as sp
-
-# Switch to CuPy.
-sp.array_library = cupy
-
-# And back to NumPy again:
-sp.array_library = numpy
-```
