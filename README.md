@@ -154,10 +154,6 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
-
-    HBox(children=(FloatProgress(value=0.0, max=300.0), HTML(value='')))
-
-
     Final validation accuracy: 0.9400000000000001
 
 
@@ -327,10 +323,6 @@ plt.ylim([0, 1])
 plt.plot(validation_acc)
 plt.show()
 ```
-
-
-    HBox(children=(FloatProgress(value=0.0, max=3000.0), HTML(value='')))
-
 
     Final validation accuracy: 0.63828125
 
