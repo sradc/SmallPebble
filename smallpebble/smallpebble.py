@@ -541,6 +541,15 @@ def batch(X, y, size, seed=None):
         yield X[idx, ...], y[idx]
 
 
+def convlayer(height, width, depth, n_kernels, strides=(1, 1), padding="VALID"):
+    "Create a convolutional neural network layer."
+    sigma = np.sqrt(6 / (height * width * depth + height * width * n_kernels))
+    kernels_init = sigma * (np.random.random([height, width, depth, n_kernels]) - 0.5)
+    kernels = learnable(Variable(kernels_init))
+    func = lambda images, kernels: conv2d(images, kernels, strides, padding)
+    return lambda images: Lazy(func)(images, kernels)
+
+
 def cross_entropy(y_pred: Variable, y_true: np.array, axis=-1) -> Variable:
     """Cross entropy.
     Args:
@@ -554,13 +563,13 @@ def cross_entropy(y_pred: Variable, y_true: np.array, axis=-1) -> Variable:
 
 
 def he_init(insize, outsize) -> np.array:
-    "He weight initialisation."
+    "He weight initialization."
     sigma = np.sqrt(4 / (insize + outsize))
     return np.random.random([insize, outsize]) * sigma - sigma / 2
 
 
 def linearlayer(insize, outsize) -> Lazy:
-    "Create a linear fully connected layer."
+    "Create a linear fully connected neural network layer."
     weights = learnable(Variable(he_init(insize, outsize)))
     bias = learnable(Variable(np.ones([outsize], np.float32)))
     func = lambda a, weights, bias: matmul(a, weights) + bias
