@@ -541,12 +541,12 @@ def batch(X, y, size, seed=None):
         yield X[idx, ...], y[idx]
 
 
-def convlayer(height, width, depth, n_kernels, strides=(1, 1), padding="VALID"):
+def convlayer(height, width, depth, n_kernels, padding="VALID", strides=(1, 1)):
     "Create a convolutional neural network layer."
     sigma = np.sqrt(6 / (height * width * depth + height * width * n_kernels))
     kernels_init = sigma * (np.random.random([height, width, depth, n_kernels]) - 0.5)
     kernels = learnable(Variable(kernels_init))
-    func = lambda images, kernels: conv2d(images, kernels, strides, padding)
+    func = lambda images, kernels: conv2d(images, kernels, padding, strides)
     return lambda images: Lazy(func)(images, kernels)
 
 
