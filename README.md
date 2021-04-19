@@ -79,7 +79,7 @@ plt.show()
 
 
     
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/README_4_0.png)
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_4_0.png)
     
 
 
@@ -163,7 +163,7 @@ plt.show()
 
 
     
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/README_6_2.png)
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_6_2.png)
     
 
 
@@ -202,7 +202,7 @@ plt.show()
 
 
     
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/README_9_0.png)
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_9_0.png)
     
 
 
@@ -337,7 +337,7 @@ plt.show()
 
 
     
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/README_14_2.png)
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_14_2.png)
     
 
 
