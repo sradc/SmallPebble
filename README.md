@@ -1,4 +1,3 @@
-
 # SmallPebble
 
 [![](https://github.com/sradc/smallpebble/workflows/Python%20package/badge.svg)](https://github.com/sradc/smallpebble/commits/) 
@@ -79,7 +78,9 @@ plt.show()
 ```
 
 
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_4_0.png)
+    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/README_4_0.png)
+    
 
 
 
@@ -113,7 +114,7 @@ BATCH_SIZE = 200
 eval_batch = sp.batch(X_eval, y_eval, BATCH_SIZE)
 adam = sp.Adam()  # Adam optimization
 
-for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM_EPOCHS):
+for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM_ITERS):
     if i >= NUM_ITERS: break
     
     X_in.assign_value(sp.Variable(xbatch))
@@ -138,7 +139,7 @@ for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM
     validation_acc.append(accuracy)
 
 # Plot results:
-print(f'Final validation accuracy: {validation_acc[-10].mean()}')
+print(f'Final validation accuracy: {np.mean(validation_acc[-10:])}')
 plt.figure(figsize=(14, 4))
 plt.subplot(1, 2, 1)
 plt.ylabel('Loss')
@@ -153,15 +154,21 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
-    Final validation accuracy: 0.935
+
+    HBox(children=(FloatProgress(value=0.0, max=300.0), HTML(value='')))
+
+
+    Final validation accuracy: 0.9400000000000001
 
 
 
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_6_2.png)
+    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/README_6_2.png)
+    
 
 
 ## Training a convolutional neural network on CIFAR-10, using CuPy
-This was run on [Google Colab](https://colab.research.google.com/), with a GPU (for ~10-15 mins).
+This was run on [Google Colab](https://colab.research.google.com/), with a GPU.
 
 
 ```python
@@ -194,7 +201,9 @@ plt.show()
 ```
 
 
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_9_0.png)
+    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/README_9_0.png)
+    
 
 
 
@@ -208,6 +217,7 @@ sp.use(cupy)
 print(sp.array_library.library.__name__)  # should be 'cupy'
 ```
 
+    
     cupy
 
 
@@ -227,7 +237,7 @@ y_eval = y_train[45_000:50_000]
 
 
 ```python
-"Define a model."
+"""Define a model."""
 
 X_in = sp.Placeholder()
 y_true = sp.Placeholder()
@@ -278,7 +288,7 @@ BATCH_SIZE = 128
 eval_batch = sp.batch(X_eval, y_eval, BATCH_SIZE)
 adam = sp.Adam()
 
-for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM_EPOCHS):
+for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM_ITERS):
     if i >= NUM_ITERS: break
        
     xbatch_images = xbatch.reshape([-1, 32, 32, 3])
@@ -303,7 +313,7 @@ for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM
     accuracy = (y_eval_batch == predictions).mean()
     validation_acc.append(accuracy)
 
-print(f'Final validation accuracy: {validation_acc[-10].mean()}')
+print(f'Final validation accuracy: {np.mean(validation_acc[-10:])}')
 plt.figure(figsize=(14, 4))
 plt.subplot(1, 2, 1)
 plt.ylabel('Loss')
@@ -318,14 +328,20 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
-    Final validation accuracy: 0.6640625
+
+    HBox(children=(FloatProgress(value=0.0, max=3000.0), HTML(value='')))
+
+
+    Final validation accuracy: 0.63828125
 
 
 
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_14_2.png)
+    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/README_14_2.png)
+    
 
 
-It looks like we could improve our results by training for longer (and of course we could improve our model architecture).
+It looks like we could improve our results by training for longer (and we could improve our model architecture).
 
 ---
 
@@ -393,14 +409,14 @@ print('grad_c:\n', grad_c)
 ```
 
     y.array:
-     [[0.83571629 1.04060209]
-     [0.83590755 0.76613642]]
+     [[1.32697776 1.24689392]
+     [1.25317932 1.05037433]]
     grad_a:
-     [[0.29385811 0.41138988]
-     [0.28457185 0.00655705]]
+     [[0.50232192 0.99209074]
+     [0.42936606 0.19027664]]
     grad_b:
-     [[0.15671755 0.67454729]
-     [0.16250373 0.46305269]]
+     [[0.95442445 0.34679685]
+     [0.94471809 0.7753676 ]]
     grad_c:
      [2. 2.]
 
@@ -420,7 +436,7 @@ print(lazy_node)
 print(lazy_node.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x7fbb90b9db50>
+    <smallpebble.smallpebble.Lazy object at 0x7f15db527550>
     3
 
 
@@ -432,7 +448,7 @@ print(y)
 print(y.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x7fbb90b6b910>
+    <smallpebble.smallpebble.Lazy object at 0x7f15db26ea50>
     10
 
 
@@ -451,8 +467,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[0.85771129 1.28521573]
-     [1.95373653 2.6991665 ]]
+     [[1.96367495 2.26668698]
+     [3.94895132 5.3053362 ]]
 
 
 You can use .run() as many times as you like. 
@@ -467,8 +483,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[ 8.57711288 12.85215729]
-     [19.53736528 26.99166502]]
+     [[19.63674952 22.6668698 ]
+     [39.48951324 53.053362  ]]
 
 
 Finally, let's compute gradients:
@@ -502,6 +518,6 @@ for learnable in learnables:
     print(learnable)
 ```
 
-    <smallpebble.smallpebble.Variable object at 0x7fbb3028c090>
-    <smallpebble.smallpebble.Variable object at 0x7fbb90ba8b10>
+    <smallpebble.smallpebble.Variable object at 0x7f157a263b10>
+    <smallpebble.smallpebble.Variable object at 0x7f15d2a4ccd0>
 
