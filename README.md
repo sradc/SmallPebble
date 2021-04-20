@@ -78,9 +78,7 @@ plt.show()
 ```
 
 
-    
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_4_0.png)
-    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_6_0.png)
 
 
 
@@ -139,7 +137,7 @@ for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM
     validation_acc.append(accuracy)
 
 # Plot results:
-print(f'Final validation accuracy: {np.mean(validation_acc[-10:])}')
+print(f'Final validation accuracy: {np.mean(validation_acc[-10:]):.4f}')
 plt.figure(figsize=(14, 4))
 plt.subplot(1, 2, 1)
 plt.ylabel('Loss')
@@ -154,13 +152,11 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
-    Final validation accuracy: 0.9400000000000001
+    Final validation accuracy: 0.9290
 
 
 
-    
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_6_2.png)
-    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_8_2.png)
 
 
 ## Training a convolutional neural network on CIFAR-10, using CuPy
@@ -197,9 +193,7 @@ plt.show()
 ```
 
 
-    
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_9_0.png)
-    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_11_0.png)
 
 
 
@@ -238,11 +232,11 @@ y_eval = y_train[45_000:50_000]
 X_in = sp.Placeholder()
 y_true = sp.Placeholder()
 
-h = sp.convlayer(height=3, width=3, depth=3, n_kernels=32)(X_in)
+h = sp.convlayer(height=3, width=3, depth=3, n_kernels=64, padding='VALID')(X_in)
 h = sp.Lazy(sp.leaky_relu)(h)
 h = sp.Lazy(lambda a: sp.maxpool2d(a, 2, 2, strides=[2, 2]))(h)
 
-h = sp.convlayer(3, 3, 32, 128, padding='VALID')(h)
+h = sp.convlayer(3, 3, 64, 128, padding='VALID')(h)
 h = sp.Lazy(sp.leaky_relu)(h)
 h = sp.Lazy(lambda a: sp.maxpool2d(a, 2, 2, strides=[2, 2]))(h)
 
@@ -251,7 +245,10 @@ h = sp.Lazy(sp.leaky_relu)(h)
 h = sp.Lazy(lambda a: sp.maxpool2d(a, 2, 2, strides=[2, 2]))(h)
 
 h = sp.Lazy(lambda x: sp.reshape(x, [-1, 3*3*128]))(h)
-h = sp.linearlayer(3*3*128, 10)(h)
+h = sp.linearlayer(3*3*128, 512)(h)
+h = sp.Lazy(sp.leaky_relu)(h)
+
+h = sp.linearlayer(512, 10)(h)
 h = sp.Lazy(sp.softmax)(h)
 
 y_pred = h
@@ -309,7 +306,7 @@ for i, (xbatch, ybatch) in tqdm(enumerate(sp.batch(X, y, BATCH_SIZE)), total=NUM
     accuracy = (y_eval_batch == predictions).mean()
     validation_acc.append(accuracy)
 
-print(f'Final validation accuracy: {np.mean(validation_acc[-10:])}')
+print(f'Final validation accuracy: {np.mean(validation_acc[-10:]):.4f}')
 plt.figure(figsize=(14, 4))
 plt.subplot(1, 2, 1)
 plt.ylabel('Loss')
@@ -324,16 +321,14 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
-    Final validation accuracy: 0.63828125
+    Final validation accuracy: 0.7273
 
 
 
-    
-![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_14_2.png)
-    
+![png](https://raw.githubusercontent.com/sradc/SmallPebble/master/readme_files/readme_16_2.png)
 
 
-It looks like we could improve our results by training for longer (and we could improve our model architecture).
+It looks like we could improve our results by training for longer. (And of course we could improve our model architecture.)
 
 ---
 
@@ -401,14 +396,14 @@ print('grad_c:\n', grad_c)
 ```
 
     y.array:
-     [[1.32697776 1.24689392]
-     [1.25317932 1.05037433]]
+     [[0.10193547 0.94806202]
+     [0.3119681  1.04487129]]
     grad_a:
-     [[0.50232192 0.99209074]
-     [0.42936606 0.19027664]]
+     [[0.02006619 0.66175381]
+     [0.23060704 0.80155288]]
     grad_b:
-     [[0.95442445 0.34679685]
-     [0.94471809 0.7753676 ]]
+     [[0.94073311 0.6947422 ]
+     [0.99263909 0.69434916]]
     grad_c:
      [2. 2.]
 
@@ -428,7 +423,7 @@ print(lazy_node)
 print(lazy_node.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x7f15db527550>
+    <smallpebble.smallpebble.Lazy object at 0x7f7cc5ee7ad0>
     3
 
 
@@ -440,7 +435,7 @@ print(y)
 print(y.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x7f15db26ea50>
+    <smallpebble.smallpebble.Lazy object at 0x7f7cc5f03990>
     10
 
 
@@ -459,8 +454,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[1.96367495 2.26668698]
-     [3.94895132 5.3053362 ]]
+     [[1.25794861 1.84124373]
+     [3.01624003 3.89064526]]
 
 
 You can use .run() as many times as you like. 
@@ -475,8 +470,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[19.63674952 22.6668698 ]
-     [39.48951324 53.053362  ]]
+     [[12.57948615 18.41243733]
+     [30.16240033 38.90645264]]
 
 
 Finally, let's compute gradients:
@@ -510,6 +505,6 @@ for learnable in learnables:
     print(learnable)
 ```
 
-    <smallpebble.smallpebble.Variable object at 0x7f157a263b10>
-    <smallpebble.smallpebble.Variable object at 0x7f15d2a4ccd0>
+    <smallpebble.smallpebble.Variable object at 0x7f7cc5ede410>
+    <smallpebble.smallpebble.Variable object at 0x7f7cc5ede5d0>
 
