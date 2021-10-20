@@ -1,3 +1,17 @@
+# Copyright 2021 The SmallPebble authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Tests for SmallPebble.
 Check results, and derivatives against numerical derivatives.
 """
@@ -25,7 +39,7 @@ def compare_results(args, sp_func, np_func, delta=1, eps=EPS):
     - SmallPebble function output against NumPy function output.
     - SmallPebble gradient against numerical gradient.
 
-    Notes: 
+    Notes:
     `delta` can be 1 for linear functions,
     but should otherwise be a very small number.
 
@@ -276,7 +290,10 @@ def test_conv2d_result():
         for padding in ["SAME", "VALID"]:
             strides = [stride, stride]
             result_sp = sp.conv2d(
-                sp.Variable(images), sp.Variable(kernels), padding=padding, strides=strides,
+                sp.Variable(images),
+                sp.Variable(kernels),
+                padding=padding,
+                strides=strides,
             )
             result_tf = tf.nn.conv2d(images, kernels, padding=padding, strides=strides)
             result_mean_error = np.mean(np.abs(result_sp.array - result_tf))
@@ -414,7 +431,7 @@ def test_operation_and_placeholder_gradients():
 
 
 def test_learnable_and_get_learnables():
-    """Test that sp.get_learnables correctly obtains 
+    """Test that sp.get_learnables correctly obtains
     sp.Variables that have been flagged by sp.learnable().
     """
     param_1 = sp.learnable(sp.Variable(np.array(5)))
@@ -433,6 +450,7 @@ def test_learnable_and_get_learnables():
 
 # ---------------- NEURAL NETWORKS
 
+
 def test_adam():
     a = sp.Variable(np.random.random([3, 5]))
     b = sp.Variable(np.random.random([5, 3]))
@@ -444,12 +462,11 @@ def test_adam():
         y_pred = sp.matmul(a, b)
         loss = sp.sum(sp.square(y_true - y_pred))
         losses.append(loss.array)
-        
+
         gradients = sp.get_gradients(loss)
         adam.training_step([a, b], gradients)
-    
-    assert np.all(np.diff(losses) < 0), 'Not converging.'
 
+    assert np.all(np.diff(losses) < 0), "Not converging."
 
 
 def test_sgd_step():
@@ -462,13 +479,11 @@ def test_sgd_step():
         y_pred = sp.matmul(a, b)
         loss = sp.sum(sp.square(y_true - y_pred))
         losses.append(loss.array)
-        
+
         gradients = sp.get_gradients(loss)
         sp.sgd_step([a, b], gradients)
-    
-    assert np.all(np.diff(losses) < 0), 'Not converging.'
 
-
+    assert np.all(np.diff(losses) < 0), "Not converging."
 
 
 # ---------------- UTIL
@@ -507,4 +522,3 @@ def numgrad(func, a, delta=1e-6):
 def rmse(a: np.ndarray, b: np.ndarray):
     "Root mean square error."
     return np.sqrt(np.mean((a - b) ** 2))
-
