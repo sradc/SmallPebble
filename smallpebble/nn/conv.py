@@ -1,8 +1,23 @@
+# Copyright 2021 The SmallPebble authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import smallpebble.core as core
 from collections import defaultdict
 import math
 import numpy
 import smallpebble.array_library as np
+
 
 def conv2d(images, kernels, padding="SAME", strides=[1, 1]) -> core.Variable:
     """2D convolution, with same api as tf.nn.conv2d [1].
@@ -31,12 +46,10 @@ def conv2d(images, kernels, padding="SAME", strides=[1, 1]) -> core.Variable:
         images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
     )
     window_shape = (1, kernheight, kernwidth, channels_in)
-    image_patches = strided_sliding_view(
-        images, window_shape, (1, stride_y, stride_x, 1))
+    image_patches = strided_sliding_view(images, window_shape, (1, stride_y, stride_x, 1))
     outh, outw = image_patches.shape[1], image_patches.shape[2]
     patches_as_matrix = core.reshape(
-        image_patches, [n_images * outh * outw,
-                        kernheight * kernwidth * channels_in]
+        image_patches, [n_images * outh * outw, kernheight * kernwidth * channels_in]
     )
     kernels_as_matrix = core.reshape(
         kernels, [kernheight * kernwidth * channels_in, channels_out]
@@ -53,8 +66,7 @@ def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]):
         images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
     )
     window_shape = (1, kernheight, kernwidth, 1)
-    image_patches = strided_sliding_view(
-        images, window_shape, [1, stride_y, stride_x, 1])
+    image_patches = strided_sliding_view(images, window_shape, [1, stride_y, stride_x, 1])
     flat_patches_shape = image_patches.array.shape[:4] + (-1,)
     image_patches = core.reshape(image_patches, shape=flat_patches_shape)
     result = core.maxax(image_patches, axis=-1)
@@ -81,8 +93,9 @@ def strided_sliding_view(a, window_shape, strides):
 
     def multiply_by_locgrad(path_value):  # TODO: a faster method
         result = np.zeros(a.shape, a.dtype)
-        core.np_add_at(core.np_strided_sliding_view(
-            result, window_shape, strides), None, path_value)
+        core.np_add_at(
+            core.np_strided_sliding_view(result, window_shape, strides), None, path_value
+        )
         return result
 
     local_gradients = [(a, multiply_by_locgrad)]
@@ -117,14 +130,11 @@ def patches_index(imheight, imwidth, kernheight, kernwidth, stride_y, stride_x):
     "Index to get image patches, e.g. for 2d convolution."
     max_y_idx = imheight - kernheight + 1
     max_x_idx = imwidth - kernwidth + 1
-    row_major_index = np.arange(
-        imheight * imwidth).reshape([imheight, imwidth])
+    row_major_index = np.arange(imheight * imwidth).reshape([imheight, imwidth])
     patch_corners = row_major_index[0:max_y_idx:stride_y, 0:max_x_idx:stride_x]
     elements_relative = row_major_index[0:kernheight, 0:kernwidth]
-    index_of_patches = patch_corners.reshape(
-        [-1, 1]) + elements_relative.reshape([1, -1])
-    index_of_patches = np.unravel_index(
-        index_of_patches, shape=[imheight, imwidth])
+    index_of_patches = patch_corners.reshape([-1, 1]) + elements_relative.reshape([1, -1])
+    index_of_patches = np.unravel_index(index_of_patches, shape=[imheight, imwidth])
     outheight, outwidth = patch_corners.shape
     n_patches = outheight * outwidth
     return index_of_patches, outheight, outwidth, n_patches

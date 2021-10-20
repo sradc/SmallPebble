@@ -1,8 +1,24 @@
+# Copyright 2021 The SmallPebble authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 from collections import defaultdict
 import math
 import numpy
 import smallpebble.array_library as np
 import smallpebble.core as core
+
 # ---------------- SMALLPEBBLE OPERATIONS
 # Operations on variables, that return variables.
 # The operations are either,
@@ -15,8 +31,7 @@ import smallpebble.core as core
 
 def leaky_relu(a, alpha=0.02):
     "Elementwise leaky relu."
-    multiplier = np.where(a.array > 0, np.array(
-        1, a.dtype), np.array(alpha, a.dtype))
+    multiplier = np.where(a.array > 0, np.array(1, a.dtype), np.array(alpha, a.dtype))
     value = a.array * multiplier
     local_gradients = [(a, lambda path_value: path_value * multiplier)]
     return core.Variable(value, local_gradients)
@@ -80,14 +95,11 @@ class Adam:
         for variable in variables:
             self.t[variable] += 1
             g = gradients[variable]
-            self.m[variable] = self.beta1 * \
-                self.m[variable] + (1 - self.beta1) * g
-            self.v[variable] = self.beta2 * \
-                self.v[variable] + (1 - self.beta2) * g ** 2
+            self.m[variable] = self.beta1 * self.m[variable] + (1 - self.beta1) * g
+            self.v[variable] = self.beta2 * self.v[variable] + (1 - self.beta2) * g ** 2
             m_ = self.m[variable] / (1 - self.beta1 ** self.t[variable])
             v_ = self.v[variable] / (1 - self.beta2 ** self.t[variable])
-            variable.array = variable.array - \
-                self.alpha * m_ / (np.sqrt(v_) + self.eps)
+            variable.array = variable.array - self.alpha * m_ / (np.sqrt(v_) + self.eps)
 
 
 def batch(X, y, size, seed=None):
@@ -103,11 +115,12 @@ def batch(X, y, size, seed=None):
 def convlayer(height, width, depth, n_kernels, padding="VALID", strides=(1, 1)):
     "Create a convolutional neural network layer."
     sigma = np.sqrt(6 / (height * width * depth + height * width * n_kernels))
-    kernels_init = sigma * \
-        (np.random.random([height, width, depth, n_kernels]) - 0.5)
+    kernels_init = sigma * (np.random.random([height, width, depth, n_kernels]) - 0.5)
     kernels = learnable(core.Variable(kernels_init))
-    def func(images, kernels): return core.conv2d(
-        images, kernels, padding, strides)
+
+    def func(images, kernels):
+        return core.conv2d(images, kernels, padding, strides)
+
     return lambda images: core.Lazy(func)(images, kernels)
 
 
@@ -133,7 +146,10 @@ def linearlayer(insize, outsize) -> core.Lazy:
     "Create a linear fully connected neural network layer."
     weights = learnable(core.Variable(he_init(insize, outsize)))
     bias = learnable(core.Variable(np.ones([outsize], np.float32)))
-    def func(a, weights, bias): return core.matmul(a, weights) + bias
+
+    def func(a, weights, bias):
+        return core.matmul(a, weights) + bias
+
     return lambda a: core.Lazy(func)(a, weights, bias)
 
 

@@ -1,3 +1,17 @@
+# Copyright 2021 The SmallPebble authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # ----------------
 # ---------------- AUTOMATIC DIFFERENTIATION
 # ----------------
@@ -7,6 +21,7 @@ from collections import defaultdict
 import math
 import numpy
 import smallpebble.array_library as np
+
 
 class Variable:
     "To be used in calculations to be differentiated."
@@ -59,8 +74,7 @@ class Lazy:
     def run(self):
         "Compute the value of this node."
         if not self.arguments:
-            raise AssignmentError(
-                f"No arguments have been assigned to {self}.")
+            raise AssignmentError(f"No arguments have been assigned to {self}.")
         argvals = (a.run() if hasattr(a, "run") else a for a in self.arguments)
         return self.function(*argvals)
 
@@ -74,6 +88,7 @@ class Placeholder(Lazy):
     def assign_value(self, variable):
         "Assign a Variable instance to this placeholder."
         self.arguments = [variable]
+
 
 def get_gradients(variable):
     "Compute the first derivatives of `variable` with respect to child variables."
@@ -93,9 +108,9 @@ def get_gradients(variable):
 def reshape(a, shape):
     "Reshape `a` into shape `shape`."
     value = np.reshape(a.array, shape)
-    local_gradients = [
-        (a, lambda path_value: path_value.reshape(a.array.shape))]
+    local_gradients = [(a, lambda path_value: path_value.reshape(a.array.shape))]
     return Variable(value, local_gradients)
+
 
 def mul(a, b):
     "Elementwise multiplication."
@@ -113,7 +128,6 @@ def neg(a):
     value = -a.array
     local_gradients = [(a, lambda path_value: -path_value)]
     return Variable(value, local_gradients)
-
 
 
 def add(a, b):
@@ -140,6 +154,7 @@ def add_at(a, indices, b):
     ]
     return Variable(value, local_gradients)
 
+
 def div(a, b):
     "Elementwise division."
     value = a.array / b.array
@@ -158,13 +173,11 @@ def enable_broadcast(a, b, matmul=False):
     a_repeatdims, b_repeatdims = broadcastinfo(a_shape, b_shape)
 
     def multiply_by_locgrad_a(path_value):
-        path_value = np.sum(
-            path_value, axis=a_repeatdims).reshape(a.array.shape)
+        path_value = np.sum(path_value, axis=a_repeatdims).reshape(a.array.shape)
         return np.zeros(a.array.shape, a.array.dtype) + path_value
 
     def multiply_by_locgrad_b(path_value):
-        path_value = np.sum(
-            path_value, axis=b_repeatdims).reshape(b.array.shape)
+        path_value = np.sum(path_value, axis=b_repeatdims).reshape(b.array.shape)
         return np.zeros(b.array.shape, b.array.dtype) + path_value
 
     a_ = Variable(a.array, local_gradients=[(a, multiply_by_locgrad_a)])
@@ -250,8 +263,7 @@ def exp(a):
 def expand_dims(a, axis):
     "Add new axes with size of 1, indices specified by `axis`."
     value = np.expand_dims(a.array, axis)
-    local_gradients = [
-        (a, lambda path_value: path_value.reshape(a.array.shape))]
+    local_gradients = [(a, lambda path_value: path_value.reshape(a.array.shape))]
     return Variable(value, local_gradients)
 
 
@@ -303,8 +315,7 @@ def maxax(a, axis):
     flatshape = value.shape
     idx = np.argmax(value, axis=-1)
     value = np.take_along_axis(value, idx[..., np.newaxis], -1)
-    value = value.reshape(
-        tuple(1 if i == axis else v for i, v in enumerate(a.shape)))
+    value = value.reshape(tuple(1 if i == axis else v for i, v in enumerate(a.shape)))
 
     def multiply_by_locgrad(path_value):
         result = np.zeros(flatshape)
@@ -330,7 +341,6 @@ def square(a):
     return Variable(value, local_gradients)
 
 
-
 def broadcastinfo(a_shape, b_shape):
     "Get which dimensions are added or repeated when `a` and `b` are broadcast."
     ndim = max(len(a_shape), len(b_shape))
@@ -346,8 +356,7 @@ def broadcastinfo(a_shape, b_shape):
 
     a_repeatdims = (a_shape_ == 1) & (b_shape_ > 1)  # the repeated dims
     a_repeatdims[:add_ndims_to_a] = True  # the added dims
-    a_repeatdims = np.where(a_repeatdims == True)[
-        0]  # indices of axes where True
+    a_repeatdims = np.where(a_repeatdims == True)[0]  # indices of axes where True
     a_repeatdims = [int(i) for i in a_repeatdims]
 
     b_repeatdims = (b_shape_ == 1) & (a_shape_ > 1)
@@ -365,8 +374,7 @@ def np_add_at(a, indices, b):
     elif np.library.__name__ == "cupy":
         np.scatter_add(a, indices, b)
     else:
-        raise ValueError(
-            "Expected np.library.__name__ to be `numpy` or `cupy`.")
+        raise ValueError("Expected np.library.__name__ to be `numpy` or `cupy`.")
 
 
 def np_strided_sliding_view(x, window_shape: tuple, strides: tuple):
@@ -385,18 +393,15 @@ def np_strided_sliding_view(x, window_shape: tuple, strides: tuple):
     """
     # Need the checks, because as_strided is not memory safe.
     if not len(window_shape) == x.ndim:
-        raise ValueError(
-            f"Must provide one window size for each dimension of x.")
+        raise ValueError(f"Must provide one window size for each dimension of x.")
     if not len(strides) == x.ndim:
-        raise ValueError(
-            f"Must provide one stride size for each dimension of x.")
+        raise ValueError(f"Must provide one stride size for each dimension of x.")
     if any(size < 0 for size in window_shape):
         raise ValueError("`window_shape` cannot contain negative values")
     if any(stride < 0 for stride in strides):
         raise ValueError("`strides` cannot contain negative values")
     if any(x_size < w_size for x_size, w_size in zip(x.shape, window_shape)):
-        raise ValueError(
-            "window shape cannot be larger than input array shape")
+        raise ValueError("window shape cannot be larger than input array shape")
     reduced_shape = tuple(
         math.ceil((x - w + 1) / s) for x, s, w in zip(x.shape, strides, window_shape)
     )
@@ -406,9 +411,6 @@ def np_strided_sliding_view(x, window_shape: tuple, strides: tuple):
     )
     out_strides = skipping_strides + x.strides
     return np.lib.stride_tricks.as_strided(x, strides=out_strides, shape=out_shape)
-
-
-
 
 
 # ---------------- AUGMENTING `VARIABLE`
