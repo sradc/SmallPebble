@@ -19,7 +19,6 @@ See https://sidsite.com/posts/autodiff/
 """
 from collections import defaultdict
 import math
-import numpy
 import smallpebble.array_library as np
 
 
@@ -624,7 +623,7 @@ def np_add_at(a, indices, b):
     if np.library.__name__ == "numpy":
         np.add.at(a, indices, b)
     elif np.library.__name__ == "cupy":
-        np.scatter_add(a, indices, b)
+        np._cupyx.scatter_add(a, indices, b)
     else:
         raise ValueError("Expected np.library.__name__ to be `numpy` or `cupy`.")
 
