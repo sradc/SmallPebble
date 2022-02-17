@@ -1,3 +1,5 @@
-numpy>=1.20.0
-pytest>=7.0.0
-tensorflow>=2.1.0
+numpy~=1.20
+pytest~=7.0
+tensorflow~=2.1
+requests~=2.27
+tqdm~=4.62
