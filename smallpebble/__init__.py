@@ -1,4 +1,4 @@
-# Copyright 2021 The SmallPebble authors. All Rights Reserved.
+# Copyright 2022 The SmallPebble Authors, Sidney Radcliffe
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
 from smallpebble.array_library import use
-from smallpebble.core import *
-from smallpebble.nn import *
+from smallpebble.smallpebble import *
 from smallpebble.version import version
-
 
 __version__ = version

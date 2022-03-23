@@ -8,7 +8,7 @@ setuptools.setup(
     author="Sidney Radcliffe",
     author_email="sidneyradcliffe@gmail.com",
     description="Minimal automatic differentiation implementation in Python, NumPy.",
-    long_description=pathlib.Path("README.md").read_text(),
+    long_description=pathlib.Path('README.md').read_text(),
     long_description_content_type="text/markdown",
     url="https://github.com/sradc/smallpebble",
     license="Apache License 2.0",

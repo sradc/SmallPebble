@@ -1,4 +1,4 @@
-# Copyright 2021 The SmallPebble authors. All Rights Reserved.
+# Copyright 2022 The SmallPebble Authors, Sidney Radcliffe
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
 """Tests for SmallPebble.
 Check results, and derivatives against numerical derivatives.
 """
@@ -276,7 +276,9 @@ def generate_images_and_kernels(imagedims, kerndims):
     np.random.seed(0)
     n_images, imheight, imwidth, _ = imagedims
     kernheight, kernwidth, channels_in, channels_out = kerndims
-    images = np.random.random([n_images, imheight, imwidth, channels_in]).astype(np.float64)
+    images = np.random.random([n_images, imheight, imwidth, channels_in]).astype(
+        np.float64
+    )
     kernels = np.random.random([kernheight, kernwidth, channels_in, channels_out])
     kernels = kernels.astype(np.float64)
     return images, kernels
@@ -317,7 +319,9 @@ def test_conv2d_grads():
             print(padding)
 
             # Calculate convolution and gradients with revdiff:
-            result_sp = sp.conv2d(images_sp, kernels_sp, padding=padding, strides=strides)
+            result_sp = sp.conv2d(
+                images_sp, kernels_sp, padding=padding, strides=strides
+            )
 
             gradients_sp = sp.get_gradients(result_sp)
             grad_images_sp = gradients_sp[images_sp]
@@ -375,7 +379,7 @@ def test_maxpool2d():
 
 def test_operation_and_placeholder_basic():
     x_in = sp.Placeholder()
-    x = sp.Lazy(lambda x: x ** 2)(x_in)
+    x = sp.Lazy(lambda x: x**2)(x_in)
     x_in.assign_value(3)
     assert x.run() == 9, "Expecting a value of 9"
 
