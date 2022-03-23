@@ -15,6 +15,8 @@
 """Tests for SmallPebble.
 Check results, and derivatives against numerical derivatives.
 """
+from __future__ import annotations
+
 from typing import Callable
 
 import pytest
