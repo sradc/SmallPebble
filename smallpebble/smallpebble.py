@@ -15,10 +15,14 @@
 """SmallPebble - Minimal automatic differentiation library.
 GitHub repo: https://github.com/sradc/smallpebble
 See README.md
-See https://sidsite.com/posts/autodiff/
+See https://sidsite.com/posts/autodiff/ for intro to reverse mode autodiff
 """
+from __future__ import annotations
+
 from collections import defaultdict
 import math
+from typing import Callable
+
 import smallpebble.array_library as np
 
 
@@ -30,15 +34,46 @@ import smallpebble.array_library as np
 
 
 class Variable:
-    "To be used in calculations to be differentiated."
+    """A variable to be used in calculations to be differentiated.
 
-    def __init__(self, array, local_gradients=()):
+    A `Variable` contains two pieces of data:
+    - `self.array` is an n-dimensional array, and is the 'value'
+        of this variable.
+    - `self.local_gradients` is a list of tuples, where
+        `self.local_gradients[i] = (child_variable, local_gradient_function)`.
+
+    For more detail on `local_gradients`, see https://sidsite.com/posts/autodiff/.
+    """
+
+    def __init__(
+        self,
+        array: np.ndarray,
+        local_gradients: list[tuple[Variable, Callable]] | None = None,
+    ) -> None:
         self.array = array
-        self.local_gradients = local_gradients
+        self.local_gradients = local_gradients if local_gradients else []
 
 
-def get_gradients(variable):
-    "Compute the first derivatives of `variable` with respect to child variables."
+def get_gradients(variable: Variable) -> dict[Variable, np.ndarray]:
+    """Compute the gradient of all descendents of `variable`.
+    (I.e. the first derivative of `variable` with respect to each descendent.)
+
+    Parameters
+    ----------
+    variable : Variable
+        A SmallPebble Variable.
+
+    Returns
+    -------
+    dict[Variable, np.ndarray]
+        A dictionary where each key is a SmallPebble Variable
+        (a descendent of `variable`), and each value is an
+        ndarray, containing the value of the gradient of the descendent.
+        E.g. for descendent `a`,
+        result[a] = <derivative of `variable` with respect to a>.
+
+    For more info see: https://sidsite.com/posts/autodiff/
+    """
     gradients = defaultdict(lambda: 0)
 
     def compute_gradients(variable, path_value):
@@ -49,7 +84,7 @@ def get_gradients(variable):
 
     gradients[variable] = np.ones(variable.array.shape, variable.array.dtype)
     compute_gradients(variable, gradients[variable])
-    return gradients
+    return dict(gradients)
 
 
 # ---------------- SMALLPEBBLE OPERATIONS
@@ -62,18 +97,18 @@ def get_gradients(variable):
 # local_gradients doesn't need to be defined.
 
 
-def add(a, b):
+def add(a: Variable, b: Variable) -> Variable:
     "Elementwise addition."
     value = a.array + b.array
     a_, b_ = enable_broadcast(a, b)
     local_gradients = [
         (a_, lambda path_value: path_value),  # gradient is 1, so multiply by 1.
-        (b_, lambda path_value: path_value),
+        (b_, lambda path_value: path_value),  # gradient is 1, so multiply by 1.
     ]
     return Variable(value, local_gradients)
 
 
-def add_at(a, indices, b):
+def add_at(a: Variable, indices: np.ndarray, b: Variable) -> Variable:
     """Add the elements of `b` to the locations in `a` specified by `indices`.
     Allows adding to an element of `a` repeatedly.
     """
@@ -86,7 +121,12 @@ def add_at(a, indices, b):
     return Variable(value, local_gradients)
 
 
-def conv2d(images, kernels, padding="SAME", strides=[1, 1]) -> Variable:
+def conv2d(
+    images: Variable,
+    kernels: Variable,
+    padding: str = "SAME",
+    strides: list[int, int] = [1, 1],
+) -> Variable:
     """2D convolution, with same api as tf.nn.conv2d [1].
 
     Args:
@@ -113,7 +153,9 @@ def conv2d(images, kernels, padding="SAME", strides=[1, 1]) -> Variable:
         images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
     )
     window_shape = (1, kernheight, kernwidth, channels_in)
-    image_patches = strided_sliding_view(images, window_shape, (1, stride_y, stride_x, 1))
+    image_patches = strided_sliding_view(
+        images, window_shape, (1, stride_y, stride_x, 1)
+    )
     outh, outw = image_patches.shape[1], image_patches.shape[2]
     patches_as_matrix = reshape(
         image_patches, [n_images * outh * outw, kernheight * kernwidth * channels_in]
@@ -125,7 +167,7 @@ def conv2d(images, kernels, padding="SAME", strides=[1, 1]) -> Variable:
     return reshape(result, [n_images, outh, outw, channels_out])
 
 
-def div(a, b):
+def div(a: Variable, b: Variable) -> Variable:
     "Elementwise division."
     value = a.array / b.array
     a_, b_ = enable_broadcast(a, b)
@@ -136,7 +178,9 @@ def div(a, b):
     return Variable(value, local_gradients)
 
 
-def enable_broadcast(a, b, matmul=False):
+def enable_broadcast(
+    a: Variable, b: Variable, matmul=False
+) -> tuple[Variable, Variable]:
     "Enables gradients to be calculated when broadcasting."
     a_shape = a.array.shape[:-2] if matmul else a.array.shape
     b_shape = b.array.shape[:-2] if matmul else b.array.shape
@@ -155,21 +199,21 @@ def enable_broadcast(a, b, matmul=False):
     return a_, b_
 
 
-def exp(a):
+def exp(a: Variable) -> Variable:
     "Elementwise exp of `a`."
     value = np.exp(a.array)
     local_gradients = [(a, lambda path_value: path_value * np.exp(a.array))]
     return Variable(value, local_gradients)
 
 
-def expand_dims(a, axis):
+def expand_dims(a: Variable, axis: int) -> Variable:
     "Add new axes with size of 1, indices specified by `axis`."
     value = np.expand_dims(a.array, axis)
     local_gradients = [(a, lambda path_value: path_value.reshape(a.array.shape))]
     return Variable(value, local_gradients)
 
 
-def getitem(a, indices):
+def getitem(a: Variable, indices: np.ndarray) -> Variable:
     "Get elements of `a` using NumPy indexing."
     value = a.array[indices]
 
@@ -183,14 +227,14 @@ def getitem(a, indices):
     return Variable(value, local_gradients)
 
 
-def log(a):
+def log(a: Variable) -> Variable:
     "Elementwise log of `a`."
     value = np.log(a.array)
     local_gradients = [(a, lambda path_value: path_value / a.array)]
     return Variable(value, local_gradients)
 
 
-def leaky_relu(a, alpha=0.02):
+def leaky_relu(a: Variable, alpha: float = 0.02) -> Variable:
     "Elementwise leaky relu."
     multiplier = np.where(a.array > 0, np.array(1, a.dtype), np.array(alpha, a.dtype))
     value = a.array * multiplier
@@ -198,7 +242,7 @@ def leaky_relu(a, alpha=0.02):
     return Variable(value, local_gradients)
 
 
-def matmul(a, b):
+def matmul(a: Variable, b: Variable) -> Variable:
     "Matrix multiplication."
     value = np.matmul(a.array, b.array)
     a_, b_ = enable_broadcast(a, b, matmul=True)
@@ -209,14 +253,14 @@ def matmul(a, b):
     return Variable(value, local_gradients)
 
 
-def matrix_transpose(a):
+def matrix_transpose(a: Variable) -> Variable:
     "Swap the end two axes."
     value = np.swapaxes(a.array, -2, -1)
     local_gradients = [(a, lambda path_value: np.swapaxes(path_value, -2, -1))]
     return Variable(value, local_gradients)
 
 
-def maxax(a, axis):
+def maxax(a: Variable, axis: int) -> Variable:
     "Reduce an axis, `axis`, to its max value."
     # Note, implementation now more complicated because CuPy doesn't have put_along_axis.
     axis = axis if axis >= 0 else a.ndim + axis
@@ -240,7 +284,13 @@ def maxax(a, axis):
     return Variable(value, local_gradients)
 
 
-def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]):
+def maxpool2d(
+    images: Variable,
+    kernheight: int,
+    kernwidth: int,
+    padding: str = "SAME",
+    strides: tuple[int, int] = [1, 1],
+) -> Variable:
     "Maxpooling on a `variable` of shape [n_images, imheight, imwidth, n_channels]."
     n_images, imheight, imwidth, n_channels = images.array.shape
     stride_y, stride_x = strides
@@ -248,14 +298,16 @@ def maxpool2d(images, kernheight, kernwidth, padding="SAME", strides=[1, 1]):
         images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
     )
     window_shape = (1, kernheight, kernwidth, 1)
-    image_patches = strided_sliding_view(images, window_shape, [1, stride_y, stride_x, 1])
+    image_patches = strided_sliding_view(
+        images, window_shape, [1, stride_y, stride_x, 1]
+    )
     flat_patches_shape = image_patches.array.shape[:4] + (-1,)
     image_patches = reshape(image_patches, shape=flat_patches_shape)
     result = maxax(image_patches, axis=-1)
     return reshape(result, result.array.shape[:-1])
 
 
-def mul(a, b):
+def mul(a: Variable, b: Variable) -> Variable:
     "Elementwise multiplication."
     value = a.array * b.array
     a_, b_ = enable_broadcast(a, b)
@@ -266,14 +318,14 @@ def mul(a, b):
     return Variable(value, local_gradients)
 
 
-def neg(a):
+def neg(a: Variable) -> Variable:
     "Negate a variable."
     value = -a.array
     local_gradients = [(a, lambda path_value: -path_value)]
     return Variable(value, local_gradients)
 
 
-def pad(a, pad_width):
+def pad(a: Variable, pad_width: tuple[tuple[int, int], ...]) -> Variable:
     "Zero pad `a`, where pad_width[dim] = (left width, right width)."
     value = np.pad(a.array, pad_width)
 
@@ -287,14 +339,14 @@ def pad(a, pad_width):
     return Variable(value, local_gradients)
 
 
-def reshape(a, shape):
+def reshape(a: Variable, shape: tuple[int, ...]) -> Variable:
     "Reshape `a` into shape `shape`."
     value = np.reshape(a.array, shape)
     local_gradients = [(a, lambda path_value: path_value.reshape(a.array.shape))]
     return Variable(value, local_gradients)
 
 
-def setat(a, indices, b):
+def setat(a: Variable, indices: np.ndarray, b: Variable) -> Variable:
     """Similar to NumPy's `setitem`. Set values of `a` at `indices` to `b`...
     BUT `a` is not modified, a new object is returned."""
     value = a.array.copy()
@@ -311,7 +363,7 @@ def setat(a, indices, b):
     return Variable(value, local_gradients)
 
 
-def softmax(a, axis=-1):
+def softmax(a: Variable, axis: int = -1) -> Variable:
     "Softmax on `axis`."
     exp_a = exp(a - Variable(np.max(a.array)))
     # ^ Shift to improve numerical stability. See:
@@ -321,7 +373,7 @@ def softmax(a, axis=-1):
     return exp_a / reshape(sum(exp_a, axis=axis), sum_shape)
 
 
-def square(a):
+def square(a: Variable) -> Variable:
     "Square each element of `a`"
     value = np.square(a.array)
 
@@ -332,20 +384,24 @@ def square(a):
     return Variable(value, local_gradients)
 
 
-def strided_sliding_view(a, window_shape, strides):
+def strided_sliding_view(
+    a: Variable, window_shape: tuple[int, ...], strides: tuple[int, ...]
+) -> Variable:
     "Sliding window view with strides (the unit of strides is index, not bytes)."
     value = np_strided_sliding_view(a.array, window_shape, strides)
 
     def multiply_by_locgrad(path_value):  # TODO: a faster method
         result = np.zeros(a.shape, a.dtype)
-        np_add_at(np_strided_sliding_view(result, window_shape, strides), None, path_value)
+        np_add_at(
+            np_strided_sliding_view(result, window_shape, strides), None, path_value
+        )
         return result
 
     local_gradients = [(a, multiply_by_locgrad)]
     return Variable(value, local_gradients)
 
 
-def sub(a, b):
+def sub(a: Variable, b: Variable) -> Variable:
     "Elementwise subtraction."
     value = a.array - b.array
     a_, b_ = enable_broadcast(a, b)
@@ -356,7 +412,7 @@ def sub(a, b):
     return Variable(value, local_gradients)
 
 
-def sum(a, axis=None):
+def sum(a: Variable, axis: tuple[int, ...] | None = None) -> Variable:
     "Sum elements of `a`, along axes specified in `axis`."
     value = np.sum(a.array, axis)
 
@@ -370,7 +426,7 @@ def sum(a, axis=None):
     return Variable(value, local_gradients)
 
 
-def where(condition, a, b):
+def where(condition: np.ndarray, a: Variable, b: Variable) -> Variable:
     "Condition is a boolean NumPy array, a and b are Variables."
     value = np.where(condition, a.array, b.array)
     a_, b_ = enable_broadcast(a, b)
@@ -440,12 +496,12 @@ class Lazy:
     >> result = y.run()
     """
 
-    def __init__(self, function):
+    def __init__(self, function: Callable) -> None:
         "Create a lazy node"
         self.function = function
         self.arguments = []
 
-    def __call__(self, *args):
+    def __call__(self, *args: tuple[Variable | Placeholder, ...]) -> Lazy:
         """Set self.arguments, i.e. the child nodes of this lazy node.
 
         *args: Nodes that `function` will take as input;
@@ -470,7 +526,7 @@ class Placeholder(Lazy):
     def __init__(self):
         super().__init__(lambda a: a)
 
-    def assign_value(self, variable):
+    def assign_value(self, variable: Variable) -> None:
         "Assign a Variable instance to this placeholder."
         self.arguments = [variable]
 
@@ -478,13 +534,13 @@ class Placeholder(Lazy):
 # ---------------- LEARNABLES
 
 
-def learnable(variable):
+def learnable(variable: Variable) -> Variable:
     "Flag `variable` as learnable."
     variable.is_learnable = True
     return variable
 
 
-def get_learnables(lazy_node):
+def get_learnables(lazy_node: Lazy) -> list[Variable]:
     "Get `variables` where is_learnable=True from a lazy graph."
     learnable_vars = []
 
@@ -519,18 +575,20 @@ class Adam:
         self.m = defaultdict(lambda: 0)
         self.v = defaultdict(lambda: 0)
 
-    def training_step(self, variables, gradients):
+    def training_step(
+        self, variables: list[Variable], gradients: dict[Variable, np.ndarray]
+    ) -> None:
         for variable in variables:
             self.t[variable] += 1
             g = gradients[variable]
             self.m[variable] = self.beta1 * self.m[variable] + (1 - self.beta1) * g
-            self.v[variable] = self.beta2 * self.v[variable] + (1 - self.beta2) * g ** 2
+            self.v[variable] = self.beta2 * self.v[variable] + (1 - self.beta2) * g**2
             m_ = self.m[variable] / (1 - self.beta1 ** self.t[variable])
             v_ = self.v[variable] / (1 - self.beta2 ** self.t[variable])
             variable.array = variable.array - self.alpha * m_ / (np.sqrt(v_) + self.eps)
 
 
-def batch(X, y, size, seed=None):
+def batch(X: np.ndarray, y: np.ndarray, size: int, seed: int | None = None):
     "Yield sub-batches of X,y, randomly selecting with replacement."
     assert (y.ndim == 1) and (X.shape[0] == y.size), "unexpected dimensions."
     if seed:
@@ -540,7 +598,14 @@ def batch(X, y, size, seed=None):
         yield X[idx, ...], y[idx]
 
 
-def convlayer(height, width, depth, n_kernels, padding="VALID", strides=(1, 1)):
+def convlayer(
+    height: int,
+    width: int,
+    depth: int,
+    n_kernels: int,
+    padding: str = "VALID",
+    strides: tuple[int, int] = (1, 1),
+) -> Callable:
     "Create a convolutional neural network layer."
     sigma = np.sqrt(6 / (height * width * depth + height * width * n_kernels))
     kernels_init = sigma * (np.random.random([height, width, depth, n_kernels]) - 0.5)
@@ -549,7 +614,7 @@ def convlayer(height, width, depth, n_kernels, padding="VALID", strides=(1, 1)):
     return lambda images: Lazy(func)(images, kernels)
 
 
-def cross_entropy(y_pred: Variable, y_true: np.array, axis=-1) -> Variable:
+def cross_entropy(y_pred: Variable, y_true: np.array, axis: int = -1) -> Variable:
     """Cross entropy.
     Args:
         y_pred: A sp.Variable instance of shape [batch_size, n_classes]
@@ -561,13 +626,13 @@ def cross_entropy(y_pred: Variable, y_true: np.array, axis=-1) -> Variable:
     return neg(sum(log(getitem(y_pred, indices))))
 
 
-def he_init(insize, outsize) -> np.array:
+def he_init(insize: int, outsize: int) -> np.array:
     "He weight initialization."
     sigma = np.sqrt(4 / (insize + outsize))
     return np.random.random([insize, outsize]) * sigma - sigma / 2
 
 
-def linearlayer(insize, outsize) -> Lazy:
+def linearlayer(insize: int, outsize: int) -> Lazy:
     "Create a linear fully connected neural network layer."
     weights = learnable(Variable(he_init(insize, outsize)))
     bias = learnable(Variable(np.ones([outsize], np.float32)))
@@ -575,14 +640,18 @@ def linearlayer(insize, outsize) -> Lazy:
     return lambda a: Lazy(func)(a, weights, bias)
 
 
-def onehot(y, n_classes) -> np.array:
+def onehot(y: np.ndarray, n_classes: int) -> np.array:
     "Onehot encode vector y with classes 0 to n_classes-1."
     result = np.zeros([len(y), n_classes])
     result[np.arange(len(y)), y] = 1
     return result
 
 
-def sgd_step(variables, gradients, learning_rate=0.001) -> None:
+def sgd_step(
+    variables: list[Variable],
+    gradients: dict[Variable, np.ndarray],
+    learning_rate: float = 0.001,
+) -> None:
     "A single step of gradient descent. Modifies each variable.array directly."
     for variable in variables:
         gradient = gradients[variable]
@@ -592,7 +661,9 @@ def sgd_step(variables, gradients, learning_rate=0.001) -> None:
 # ---------------- UTIL
 
 
-def broadcastinfo(a_shape, b_shape):
+def broadcastinfo(
+    a_shape: tuple[int, ...], b_shape: tuple[int, ...]
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
     "Get which dimensions are added or repeated when `a` and `b` are broadcast."
     ndim = max(len(a_shape), len(b_shape))
 
@@ -618,7 +689,7 @@ def broadcastinfo(a_shape, b_shape):
     return tuple(a_repeatdims), tuple(b_repeatdims)
 
 
-def np_add_at(a, indices, b):
+def np_add_at(a: np.ndarray, indices: np.ndarray, b: np.ndarray) -> None:
     "Apply either numpy.add.at or cupy.scatter_add, depending on which library is used."
     if np.library.__name__ == "numpy":
         np.add.at(a, indices, b)
@@ -628,7 +699,9 @@ def np_add_at(a, indices, b):
         raise ValueError("Expected np.library.__name__ to be `numpy` or `cupy`.")
 
 
-def np_strided_sliding_view(x, window_shape: tuple, strides: tuple):
+def np_strided_sliding_view(
+    x: np.ndarray, window_shape: tuple, strides: tuple
+) -> np.ndarray:
     """Similar to np.sliding_window_view [1], but with strides,
     (the unit of strides is index number, not bytes).
 
@@ -664,7 +737,7 @@ def np_strided_sliding_view(x, window_shape: tuple, strides: tuple):
     return np.lib.stride_tricks.as_strided(x, strides=out_strides, shape=out_shape)
 
 
-def pad_amounts(array_length, stride, kern_length):
+def pad_amounts(array_length: int, stride: int, kern_length: int) -> tuple[int, int]:
     """Amount of padding to be applied to a 1D array.
     Matches TensorFlow's conv2d padding, when padding='SAME'.
     """
@@ -677,8 +750,15 @@ def pad_amounts(array_length, stride, kern_length):
 
 
 def padding2d(
-    images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
-):
+    images: np.ndarray,
+    padding: str,
+    imheight: int,
+    imwidth: int,
+    stride_y: int,
+    stride_x: int,
+    kernheight: int,
+    kernwidth: int,
+) -> tuple[np.ndarray, int, int]:
     "Pad `images` for conv2d, maxpool2d."
     if padding == "SAME":
         pad_top, pad_bottom = pad_amounts(imheight, stride_y, kernheight)
@@ -700,14 +780,23 @@ def padding2d(
     return images, imheight, imwidth
 
 
-def patches_index(imheight, imwidth, kernheight, kernwidth, stride_y, stride_x):
+def patches_index(
+    imheight: int,
+    imwidth: int,
+    kernheight: int,
+    kernwidth: int,
+    stride_y: int,
+    stride_x: int,
+) -> tuple[np.ndarray, int, int, int]:
     "Index to get image patches, e.g. for 2d convolution."
     max_y_idx = imheight - kernheight + 1
     max_x_idx = imwidth - kernwidth + 1
     row_major_index = np.arange(imheight * imwidth).reshape([imheight, imwidth])
     patch_corners = row_major_index[0:max_y_idx:stride_y, 0:max_x_idx:stride_x]
     elements_relative = row_major_index[0:kernheight, 0:kernwidth]
-    index_of_patches = patch_corners.reshape([-1, 1]) + elements_relative.reshape([1, -1])
+    index_of_patches = patch_corners.reshape([-1, 1]) + elements_relative.reshape(
+        [1, -1]
+    )
     index_of_patches = np.unravel_index(index_of_patches, shape=[imheight, imwidth])
     outheight, outwidth = patch_corners.shape
     n_patches = outheight * outwidth
