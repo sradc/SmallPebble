@@ -566,7 +566,13 @@ class Adam:
     Kingma, Ba. Adam: A Method for Stochastic Optimization. 2017.
     """
 
-    def __init__(self, alpha=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
+    def __init__(
+        self,
+        alpha: float = 0.001,
+        beta1: float = 0.9,
+        beta2: float = 0.999,
+        eps: float = 1e-8,
+    ) -> None:
         self.alpha = alpha
         self.beta1 = beta1
         self.beta2 = beta2
