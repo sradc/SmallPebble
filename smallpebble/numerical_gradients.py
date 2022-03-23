@@ -15,6 +15,8 @@
 """Numerical gradients, used for debugging and tests.
 Computed using finite differences.
 """
+from __future__ import annotations
+
 from typing import Callable
 
 import smallpebble.array_library as np
