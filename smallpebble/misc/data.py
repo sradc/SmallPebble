@@ -1,3 +1,17 @@
+# Copyright 2022 The SmallPebble authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 """Rough and ready... load (/download) MNIST/CIFAR data from openml.org."""
 from collections import namedtuple
 import hashlib
@@ -132,7 +146,9 @@ def download(savedir, name):
     if not meta.sha256 == hashed:
         errorfilepath = filepath.with_suffix("-sha256-error")
         filepath.rename(errorfilepath)
-        raise ValueError(f"Unexpected hash value. Saved file as {errorfilepath.resolve()}")
+        raise ValueError(
+            f"Unexpected hash value. Saved file as {errorfilepath.resolve()}"
+        )
 
 
 def yield_data(savedir, name, datalen):
@@ -159,7 +175,9 @@ def yield_data(savedir, name, datalen):
 def arff_to_npy(savedir, name):
     meta = META[name]
     result = np.zeros([meta.rows, meta.cols], meta.dtype)
-    for i, data in tqdm(enumerate(yield_data(savedir, name, meta.cols)), total=meta.rows):
+    for i, data in tqdm(
+        enumerate(yield_data(savedir, name, meta.cols)), total=meta.rows
+    ):
         result[i, :] = data
     assert i + 1 == result.shape[0], "Error converting data."
     result = meta.preprocess(result)
