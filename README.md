@@ -2,7 +2,7 @@
 
 [![](https://github.com/sradc/smallpebble/workflows/Python%20package/badge.svg)](https://github.com/sradc/smallpebble/commits/)
 
-<br><p align="center"><img src="https://raw.githubusercontent.com/sradc/SmallPebble/master/pebbles.jpg"/></p><br>
+<br><p align="center"><img src="https://raw.githubusercontent.com/sradc/SmallPebble/master/smallpebble_2022-08-15.png"/></p><br>
 
 SmallPebble is a minimal automatic differentiation and deep learning library written from scratch in [Python](https://www.python.org/), using [NumPy](https://numpy.org/)/[CuPy](https://cupy.dev/).
 
