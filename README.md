@@ -4,7 +4,7 @@
 
 <br><p align="center"><img src="https://raw.githubusercontent.com/sradc/SmallPebble/master/smallpebble_2022-08-15.png"/></p><br>
 
-*Calculus - from Latin 'calculus' meaning **‘pebble’**.*
+*The name SmallPebble is a reference to the Latin translation of 'calculus', which is **‘pebble’**.*
 
 SmallPebble is a minimal automatic differentiation and deep learning library written from scratch in [Python](https://www.python.org/), using [NumPy](https://numpy.org/)/[CuPy](https://cupy.dev/).
 
