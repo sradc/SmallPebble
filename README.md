@@ -2,40 +2,46 @@
 
 [![](https://github.com/sradc/smallpebble/workflows/Python%20package/badge.svg)](https://github.com/sradc/smallpebble/commits/) 
 
-SmallPebble is a minimalist autodiff and deep learning library written from scratch in Python, using [NumPy](https://numpy.org/).
+SmallPebble is a minimalist autodiff and deep learning library written from scratch in Python.
+It runs automatic differentiation on NumPy arrays.
 
-The implementation is in one file: [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py)
+**The core implementation is in a single file: [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py)**
 
-SmallPebble is a simplified implementation,
-designed to show the core concepts under the hood of deep learning frameworks.
+SmallPebble demonstrates the key concepts under the hood of deep learning frameworks,
+without the complexity of performance optimizations or GPU support.
 
-To understand SmallPebble:
-- First read [this](https://sidsite.com/posts/autodiff/) introduction to autodiff, by the SmallPebble author.
-    - It presents a similar autodiff implementation to SmallPebble, but simpler, on scalars, rather than arrays.
-- Then check out [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py).
-- Also take a look at the tests - it wouldn't have been possible write this library without them.
+### Recommended Learning Path:
+- Read [this](https://sidsite.com/posts/autodiff/) introduction to autodiff, by the author.
+    - It presents a similar autodiff implementation to SmallPebble, but simplified, on scalars.
+- Read the source code: [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py).
+- Take a look at the `tests/` folder — this library was written test-first.
+- Clone the repo and play with it...
 
-**Highlights**
-- Simple implementation.
-- Various operations, such as matmul, conv2d, maxpool2d.
-- Array broadcasting support.
-- Eager or lazy execution.
-- Powerful API for creating models.
-- Easy to add new SmallPebble functions.
+### Installation
+Clone the repository and install it locally:
+```bash
+git clone https://github.com/sradc/smallpebble.git
+cd smallpebble
+pip install -e .
+# or if using uv: 
+# uv sync
+```
 
-**Notes**
+### Highlights
+- **Compact:** < 1000 lines of core logic.
+- **Feature-rich:** Supports matmul, conv2d, maxpool2d, and array broadcasting.
+- **Flexible:** Supports eager execution and implicit graph building.
+- **Extensible:** Easy API for adding custom operations.
 
-Graphs are built implicitly via Python objects referencing Python objects.
-When `get_gradients` is called, autodiff is carried out on the whole sub-graph.
+### How it works (TL;DR)
+SmallPebble builds **dynamic computation graphs** implicitly via Python object referencing (similar to PyTorch). 
+When `get_gradients` is called, autodiff is performed by traversing the graph backward.
 
-This README is generated from [README.ipynb](https://github.com/sradc/SmallPebble/blob/master/README.ipynb).
-
----
-
-**Read on to see:**
+### Read on to see:
 - Example models created and trained using SmallPebble.
-- A brief guide to using SmallPebble.
+- A brief guide to using the library.
 
+_This README is generated from [README.ipynb](https://github.com/sradc/SmallPebble/blob/master/README.ipynb)._
 
 
 ```python
