@@ -1,4 +1,4 @@
-# Copyright 2022 The SmallPebble Authors, Sidney Radcliffe
+# Copyright 2022-2026 The SmallPebble Authors, Sidney Radcliffe
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-import smallpebble.array_library as np
-
+import numpy as np
 
 def numgrads(
     func: Callable, args: list[np.ndarray], n: int = 1, delta: float = 1e-6

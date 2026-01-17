@@ -1,4 +1,0 @@
-cupy~=10.1
-numpy~=1.20
-requests~=2.27
-tqdm~=4.62

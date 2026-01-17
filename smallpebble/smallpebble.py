@@ -1,4 +1,4 @@
-# Copyright 2022 The SmallPebble Authors, Sidney Radcliffe
+# Copyright 2022-2026 The SmallPebble Authors, Sidney Radcliffe
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from collections import defaultdict
 import math
 from typing import Callable
 
-import smallpebble.array_library as np
+import numpy as np
 
 
 # ----------------
@@ -90,7 +90,7 @@ def get_gradients(variable: Variable) -> dict[Variable, np.ndarray]:
 # ---------------- SMALLPEBBLE OPERATIONS
 # Operations on variables, that return variables.
 # The operations are either,
-# written in terms of NumPy/CuPy operations,
+# written in terms of NumPy operations,
 # in which case local_gradients needs to be defined,
 # or,
 # written in terms of other SmallPebble operations, in which case,
@@ -113,7 +113,7 @@ def add_at(a: Variable, indices: np.ndarray, b: Variable) -> Variable:
     Allows adding to an element of `a` repeatedly.
     """
     value = a.array.copy()
-    np_add_at(value, indices, b.array)
+    np.add.at(value, indices, b.array)
     local_gradients = [
         (a, lambda path_value: path_value),
         (b, lambda path_value: path_value[indices]),
@@ -220,7 +220,7 @@ def getitem(a: Variable, indices: np.ndarray) -> Variable:
     def multiply_by_locgrad(path_value):
         "(Takes into account elements indexed multiple times.)"
         result = np.zeros(a.array.shape, a.array.dtype)
-        np_add_at(result, indices, path_value)
+        np.add.at(result, indices, path_value)
         return result
 
     local_gradients = [(a, multiply_by_locgrad)]
@@ -262,7 +262,8 @@ def matrix_transpose(a: Variable) -> Variable:
 
 def maxax(a: Variable, axis: int) -> Variable:
     "Reduce an axis, `axis`, to its max value."
-    # Note, implementation now more complicated because CuPy doesn't have put_along_axis.
+    # Note, implementation here is more complicated because CuPy doesn't have put_along_axis,
+    # and CuPy used to be supported.
     axis = axis if axis >= 0 else a.ndim + axis
     value = np.swapaxes(a.array, axis, -1)
     value = value.reshape([-1, value.shape[-1]])
@@ -392,7 +393,7 @@ def strided_sliding_view(
 
     def multiply_by_locgrad(path_value):  # TODO: a faster method
         result = np.zeros(a.shape, a.dtype)
-        np_add_at(
+        np.add.at(
             np_strided_sliding_view(result, window_shape, strides), None, path_value
         )
         return result
@@ -693,16 +694,6 @@ def broadcastinfo(
     b_repeatdims = [int(i) for i in b_repeatdims]
 
     return tuple(a_repeatdims), tuple(b_repeatdims)
-
-
-def np_add_at(a: np.ndarray, indices: np.ndarray, b: np.ndarray) -> None:
-    "Apply either numpy.add.at or cupy.scatter_add, depending on which library is used."
-    if np.library.__name__ == "numpy":
-        np.add.at(a, indices, b)
-    elif np.library.__name__ == "cupy":
-        np._cupyx.scatter_add(a, indices, b)
-    else:
-        raise ValueError("Expected np.library.__name__ to be `numpy` or `cupy`.")
 
 
 def np_strided_sliding_view(
