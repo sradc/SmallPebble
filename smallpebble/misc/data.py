@@ -16,27 +16,30 @@
 Minimalist data loader for SmallPebble.
 Loads MNIST (from OpenML) and CIFAR-10 (from CS.Toronto).
 """
+
+import pathlib
 import pickle
 import tarfile
-import pathlib
-import requests
+
 import numpy as np
+import requests
 from tqdm import tqdm
 
 DEFAULT_SAVEDIR = pathlib.Path.home() / ".smallpebble"
 CHUNK_SIZE = 1024 * 1024
 
+
 def load_data(name, savedir=None):
     """
-    Load 'mnist' or 'cifar'. 
+    Load 'mnist' or 'cifar'.
     Returns: X_train, y_train, X_test, y_test
     """
     savedir = pathlib.Path(savedir) if savedir else DEFAULT_SAVEDIR
     savedir.mkdir(parents=True, exist_ok=True)
-    
-    if name == 'mnist':
+
+    if name == "mnist":
         return _load_mnist(savedir)
-    elif name == 'cifar':
+    elif name == "cifar":
         return _load_cifar(savedir)
     else:
         raise ValueError("Dataset must be 'mnist' or 'cifar'")
@@ -46,7 +49,7 @@ def _load_mnist(savedir):
     filename = "mnist_784.arff"
     npy_filename = "mnist.npy"
     url = "https://www.openml.org/data/download/52667/mnist_784.arff"
-    
+
     # Check cache
     if (savedir / npy_filename).exists():
         data = np.load(savedir / npy_filename)
@@ -54,19 +57,20 @@ def _load_mnist(savedir):
         print("Downloading MNIST...")
         filepath = savedir / filename
         _download(url, filepath)
-        
+
         print("Parsing MNIST...")
         # Basic ARFF parser for MNIST specifically
         data = []
-        with open(filepath, 'r') as f:
-            for line in tqdm(f, total=70000+500): # approx lines
-                if line.startswith('@') or line == '\n': continue
+        with open(filepath, "r") as f:
+            for line in tqdm(f, total=70000 + 500):  # approx lines
+                if line.startswith("@") or line == "\n":
+                    continue
                 # Parse csv line to integers
-                data.append([int(x) for x in line.strip().split(',')])
-        
+                data.append([int(x) for x in line.strip().split(",")])
+
         data = np.array(data, dtype=np.uint8)
         np.save(savedir / npy_filename, data)
-        filepath.unlink() # Delete ARFF to save space
+        filepath.unlink()  # Delete ARFF to save space
 
     # Split
     X = data[:, :-1]
@@ -86,7 +90,12 @@ def _load_cifar(savedir):
 
     if (savedir / npy_filename).exists():
         data_dict = np.load(savedir / npy_filename, allow_pickle=True).item()
-        return data_dict['X_train'], data_dict['y_train'], data_dict['X_test'], data_dict['y_test']
+        return (
+            data_dict["X_train"],
+            data_dict["y_train"],
+            data_dict["X_test"],
+            data_dict["y_test"],
+        )
 
     print("Downloading CIFAR-10...")
     filepath = savedir / filename
@@ -100,13 +109,13 @@ def _load_cifar(savedir):
     with tarfile.open(filepath, "r:gz") as tar:
         for member in tar.getmembers():
             if "data_batch" in member.name:
-                batch = pickle.load(tar.extractfile(member), encoding='bytes')
-                X_train.append(batch[b'data'])
-                y_train.extend(batch[b'labels'])
+                batch = pickle.load(tar.extractfile(member), encoding="bytes")
+                X_train.append(batch[b"data"])
+                y_train.extend(batch[b"labels"])
             elif "test_batch" in member.name:
-                batch = pickle.load(tar.extractfile(member), encoding='bytes')
-                X_test = batch[b'data']
-                y_test = batch[b'labels']
+                batch = pickle.load(tar.extractfile(member), encoding="bytes")
+                X_test = batch[b"data"]
+                y_test = batch[b"labels"]
 
     X_train = np.vstack(X_train)
     y_train = np.array(y_train)
@@ -123,12 +132,14 @@ def _load_cifar(savedir):
 
     # Save as compressed dictionary
     save_dict = {
-        'X_train': X_train, 'y_train': y_train,
-        'X_test': X_test, 'y_test': y_test
+        "X_train": X_train,
+        "y_train": y_train,
+        "X_test": X_test,
+        "y_test": y_test,
     }
     np.save(savedir / npy_filename, save_dict)
-    
-    filepath.unlink() # Delete tar.gz
+
+    filepath.unlink()  # Delete tar.gz
     return X_train, y_train, X_test, y_test
 
 
@@ -136,9 +147,9 @@ def _download(url, filepath):
     with open(filepath, "wb") as file:
         response = requests.get(url, stream=True)
         response.raise_for_status()
-        total_size = int(response.headers.get('content-length', 0))
-        
-        with tqdm(total=total_size, unit='B', unit_scale=True, desc=filepath.name) as bar:
+        total_size = int(response.headers.get("content-length", 0))
+
+        with tqdm(total=total_size, unit="B", unit_scale=True, desc=filepath.name) as bar:
             for data in response.iter_content(chunk_size=CHUNK_SIZE):
                 file.write(data)
                 bar.update(len(data))

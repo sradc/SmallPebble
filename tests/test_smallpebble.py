@@ -15,13 +15,14 @@
 """Tests for SmallPebble.
 Check results, and derivatives against numerical derivatives.
 """
+
 from __future__ import annotations
 
 from typing import Callable
 
 import pytest
-# import tensorflow as tf
 
+# import tensorflow as tf
 import smallpebble as sp
 from tests.numerical_gradients import numgrads
 
@@ -288,9 +289,7 @@ def generate_images_and_kernels(imagedims, kerndims):
     np.random.seed(0)
     n_images, imheight, imwidth, _ = imagedims
     kernheight, kernwidth, channels_in, channels_out = kerndims
-    images = np.random.random([n_images, imheight, imwidth, channels_in]).astype(
-        np.float64
-    )
+    images = np.random.random([n_images, imheight, imwidth, channels_in]).astype(np.float64)
     kernels = np.random.random([kernheight, kernwidth, channels_in, channels_out])
     kernels = kernels.astype(np.float64)
     return images, kernels

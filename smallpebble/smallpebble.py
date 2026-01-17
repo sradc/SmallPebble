@@ -17,14 +17,14 @@ GitHub repo: https://github.com/sradc/smallpebble
 See README.md
 See https://sidsite.com/posts/autodiff/ for intro to reverse mode autodiff
 """
+
 from __future__ import annotations
 
-from collections import defaultdict
 import math
+from collections import defaultdict
 from typing import Callable
 
 import numpy as np
-
 
 # ----------------
 # ---------------- AUTOMATIC DIFFERENTIATION
@@ -153,16 +153,12 @@ def conv2d(
         images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
     )
     window_shape = (1, kernheight, kernwidth, channels_in)
-    image_patches = strided_sliding_view(
-        images, window_shape, (1, stride_y, stride_x, 1)
-    )
+    image_patches = strided_sliding_view(images, window_shape, (1, stride_y, stride_x, 1))
     outh, outw = image_patches.shape[1], image_patches.shape[2]
     patches_as_matrix = reshape(
         image_patches, [n_images * outh * outw, kernheight * kernwidth * channels_in]
     )
-    kernels_as_matrix = reshape(
-        kernels, [kernheight * kernwidth * channels_in, channels_out]
-    )
+    kernels_as_matrix = reshape(kernels, [kernheight * kernwidth * channels_in, channels_out])
     result = matmul(patches_as_matrix, kernels_as_matrix)
     return reshape(result, [n_images, outh, outw, channels_out])
 
@@ -178,9 +174,7 @@ def div(a: Variable, b: Variable) -> Variable:
     return Variable(value, local_gradients)
 
 
-def enable_broadcast(
-    a: Variable, b: Variable, matmul=False
-) -> tuple[Variable, Variable]:
+def enable_broadcast(a: Variable, b: Variable, matmul=False) -> tuple[Variable, Variable]:
     "Enables gradients to be calculated when broadcasting."
     a_shape = a.array.shape[:-2] if matmul else a.array.shape
     b_shape = b.array.shape[:-2] if matmul else b.array.shape
@@ -299,9 +293,7 @@ def maxpool2d(
         images, padding, imheight, imwidth, stride_y, stride_x, kernheight, kernwidth
     )
     window_shape = (1, kernheight, kernwidth, 1)
-    image_patches = strided_sliding_view(
-        images, window_shape, [1, stride_y, stride_x, 1]
-    )
+    image_patches = strided_sliding_view(images, window_shape, [1, stride_y, stride_x, 1])
     flat_patches_shape = image_patches.array.shape[:4] + (-1,)
     image_patches = reshape(image_patches, shape=flat_patches_shape)
     result = maxax(image_patches, axis=-1)
@@ -331,9 +323,7 @@ def pad(a: Variable, pad_width: tuple[tuple[int, int], ...]) -> Variable:
     value = np.pad(a.array, pad_width)
 
     def multiply_by_locgrad(path_value):
-        indices = tuple(
-            slice(L, path_value.shape[i] - R) for i, (L, R) in enumerate(pad_width)
-        )
+        indices = tuple(slice(L, path_value.shape[i] - R) for i, (L, R) in enumerate(pad_width))
         return path_value[indices]
 
     local_gradients = [(a, multiply_by_locgrad)]
@@ -393,9 +383,7 @@ def strided_sliding_view(
 
     def multiply_by_locgrad(path_value):  # TODO: a faster method
         result = np.zeros(a.shape, a.dtype)
-        np.add.at(
-            np_strided_sliding_view(result, window_shape, strides), None, path_value
-        )
+        np.add.at(np_strided_sliding_view(result, window_shape, strides), None, path_value)
         return result
 
     local_gradients = [(a, multiply_by_locgrad)]
@@ -685,20 +673,18 @@ def broadcastinfo(
 
     a_repeatdims = (a_shape_ == 1) & (b_shape_ > 1)  # the repeated dims
     a_repeatdims[:add_ndims_to_a] = True  # the added dims
-    a_repeatdims = np.where(a_repeatdims == True)[0]  # indices of axes where True
+    a_repeatdims = np.where(a_repeatdims)[0]  # indices of axes where True
     a_repeatdims = [int(i) for i in a_repeatdims]
 
     b_repeatdims = (b_shape_ == 1) & (a_shape_ > 1)
     b_repeatdims[:add_ndims_to_b] = True
-    b_repeatdims = np.where(b_repeatdims == True)[0]
+    b_repeatdims = np.where(b_repeatdims)[0]
     b_repeatdims = [int(i) for i in b_repeatdims]
 
     return tuple(a_repeatdims), tuple(b_repeatdims)
 
 
-def np_strided_sliding_view(
-    x: np.ndarray, window_shape: tuple, strides: tuple
-) -> np.ndarray:
+def np_strided_sliding_view(x: np.ndarray, window_shape: tuple, strides: tuple) -> np.ndarray:
     """Similar to np.sliding_window_view [1], but with strides,
     (the unit of strides is index number, not bytes).
 
@@ -714,9 +700,9 @@ def np_strided_sliding_view(
     """
     # Need the checks, because as_strided is not memory safe.
     if not len(window_shape) == x.ndim:
-        raise ValueError(f"Must provide one window size for each dimension of x.")
+        raise ValueError("Must provide one window size for each dimension of x.")
     if not len(strides) == x.ndim:
-        raise ValueError(f"Must provide one stride size for each dimension of x.")
+        raise ValueError("Must provide one stride size for each dimension of x.")
     if any(size < 0 for size in window_shape):
         raise ValueError("`window_shape` cannot contain negative values")
     if any(stride < 0 for stride in strides):
@@ -727,9 +713,7 @@ def np_strided_sliding_view(
         math.ceil((x - w + 1) / s) for x, s, w in zip(x.shape, strides, window_shape)
     )
     out_shape = reduced_shape + window_shape
-    skipping_strides = tuple(
-        xstride * stride for xstride, stride in zip(x.strides, strides)
-    )
+    skipping_strides = tuple(xstride * stride for xstride, stride in zip(x.strides, strides))
     out_strides = skipping_strides + x.strides
     return np.lib.stride_tricks.as_strided(x, strides=out_strides, shape=out_shape)
 
@@ -791,9 +775,7 @@ def patches_index(
     row_major_index = np.arange(imheight * imwidth).reshape([imheight, imwidth])
     patch_corners = row_major_index[0:max_y_idx:stride_y, 0:max_x_idx:stride_x]
     elements_relative = row_major_index[0:kernheight, 0:kernwidth]
-    index_of_patches = patch_corners.reshape([-1, 1]) + elements_relative.reshape(
-        [1, -1]
-    )
+    index_of_patches = patch_corners.reshape([-1, 1]) + elements_relative.reshape([1, -1])
     index_of_patches = np.unravel_index(index_of_patches, shape=[imheight, imwidth])
     outheight, outwidth = patch_corners.shape
     n_patches = outheight * outwidth

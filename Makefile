@@ -1,9 +1,14 @@
+.PHONY: test readme pre-commit check-readme
 
-.PHONY: test
 test:
 	uv run pytest
 
-.PHONY: readme
 readme:
-	rm -r "README_files"  \
-	&& uv run jupyter nbconvert --to markdown README.ipynb
+	rm -rf README_files
+	uv run jupyter nbconvert --to markdown README.ipynb
+
+pre-commit:
+	uv run pre-commit run --all-files
+
+check-readme: readme
+	git diff --exit-code README.md

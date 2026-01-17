@@ -36,6 +36,23 @@ dev = [
     "ipywidgets>=8.1.8",
     "matplotlib>=3.10.8",
     "nbconvert>=7.16.6",
+    "pre-commit>=4.5.1",
     "pytest>=9.0.2",
+    "ruff>=0.14.13",
     "tqdm>=4.67.1",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# E/F = standard flake8 rules, I = isort (import sorting)
+select = ["E", "F", "I"] 
+ignore = [
+    "E731", # "Do not assign a `lambda` expression, use a `def`" <- makes code verbose
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

@@ -15,11 +15,13 @@
 """Numerical gradients, used for debugging and tests.
 Computed using finite differences.
 """
+
 from __future__ import annotations
 
 from typing import Callable
 
 import numpy as np
+
 
 def numgrads(
     func: Callable, args: list[np.ndarray], n: int = 1, delta: float = 1e-6

@@ -1,6 +1,6 @@
 name: Python package
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   test:
@@ -23,5 +23,12 @@ jobs:
     - name: Install dependencies
       run: uv sync
 
+    - name: Pre-commit checks
+      run: make pre-commit
+
     - name: Test with pytest
       run: make test
+
+    - name: Verify README is up to date
+      if: matrix.python-version == '3.12'  # only needs to run once
+      run: make check-readme
