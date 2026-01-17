@@ -12,184 +12,133 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Rough and ready... load (/download) MNIST/CIFAR data from openml.org."""
-from collections import namedtuple
-import hashlib
+"""
+Minimalist data loader for SmallPebble.
+Loads MNIST (from OpenML) and CIFAR-10 (from CS.Toronto).
+"""
+import pickle
+import tarfile
 import pathlib
 import requests
-from tqdm import tqdm
 import numpy as np
+from tqdm import tqdm
 
 DEFAULT_SAVEDIR = pathlib.Path.home() / ".smallpebble"
 CHUNK_SIZE = 1024 * 1024
 
-
-def split_mnist(data):
-    "https://www.openml.org/d/554"
-    images = data[:, : 28 * 28]
-    labels = data[:, -1]
-    train_slice = slice(0, 60_000)
-    test_slice = slice(60_000, 70_000)
-    X_train = images[train_slice, :]
-    y_train = labels[train_slice]
-    X_test = images[test_slice, :]
-    y_test = labels[test_slice]
-    return X_train, y_train, X_test, y_test
-
-
-def split_cifar(data):
-    "https://www.openml.org/d/40927"
-    images = data[:, 0 : 32 * 32 * 3]
-    labels = data[:, -1]
-    train_slice = slice(0, 50_000)
-    test_slice = slice(50_000, 60_000)
-    X_train = images[train_slice, :]
-    y_train = labels[train_slice]
-    X_test = images[test_slice, :]
-    y_test = labels[test_slice]
-    return X_train, y_train, X_test, y_test
-
-
-def preprocess_cifar(data):
-    "Move channel dimension to -1."
-    n = data.shape[0]
-    data[0:n, 0 : 32 * 32 * 3] = (
-        data[0:n, 0 : 32 * 32 * 3]
-        .reshape(n, 3, 32, 32)
-        .transpose([0, 2, 3, 1])
-        .reshape(n, -1)
-    )
-    return data
-
-
-Metadata = namedtuple(
-    "Metadata", "filename npy url sha256 rows cols dtype preprocess splitdata"
-)
-META = {
-    "mnist": Metadata(
-        "mnist_784.arff",
-        "mnist.npy",
-        r"https://www.openml.org/data/download/52667/mnist_784.arff",
-        "418c0a60d2b4abc95db2e2bbf676f3af93ddaf18f79ba3f640624ab57007fb4b",
-        rows=70_000,
-        cols=28 * 28 + 1,
-        dtype=np.uint8,
-        preprocess=lambda data: data,
-        splitdata=split_mnist,
-    ),
-    "cifar": Metadata(
-        "cifar-10.arff",
-        "cifar.npy",
-        r"https://www.openml.org/data/download/16797613/cifar-10.arff",
-        "d28aa6ec1ac50109b54d58c45a4d31be6f9c406b36af81733e09bf9a55b73961",
-        rows=60_000,
-        cols=32 * 32 * 3 + 1,
-        dtype=np.uint8,
-        preprocess=preprocess_cifar,
-        splitdata=split_cifar,
-    ),
-}
-
-
-def load_data(name, savedir=None, delete_intermediate_files=True):
-    """Load name='mnist' or 'cifar', from openml.org.
-
-    >> from smallpebble.misc import load_data
-    >> X_train, y_train, X_test, y_test = load_data('mnist')
-
-    Notes:
-    Caches in `savedir` to avoid redownloading (default is ~/.smallpebble/).
-    Converts the data into NumPy's 'npy' format, which is smaller and faster to load than 'arff'.
-
-    Data is from: https://www.openml.org
+def load_data(name, savedir=None):
     """
-    meta = META[name]
+    Load 'mnist' or 'cifar'. 
+    Returns: X_train, y_train, X_test, y_test
+    """
     savedir = pathlib.Path(savedir) if savedir else DEFAULT_SAVEDIR
-
-    if (savedir / meta.npy).is_file():
-        data = np.load(savedir / meta.npy)
+    savedir.mkdir(parents=True, exist_ok=True)
+    
+    if name == 'mnist':
+        return _load_mnist(savedir)
+    elif name == 'cifar':
+        return _load_cifar(savedir)
     else:
-        savedir.mkdir(exist_ok=True)
-
-        print(f"Downloading {name} from openml.org")
-        download(savedir, name)
-        print("File successfully downloaded and validated.")
-
-        print("Converting file...")
-        data = arff_to_npy(savedir, name)
-        print("Successfully converted file.")
-
-        if delete_intermediate_files:
-            (savedir / meta.filename).unlink()
-
-    return meta.splitdata(data)
+        raise ValueError("Dataset must be 'mnist' or 'cifar'")
 
 
-def download(savedir, name):
-    """Download file and check hash."""
+def _load_mnist(savedir):
+    filename = "mnist_784.arff"
+    npy_filename = "mnist.npy"
+    url = "https://www.openml.org/data/download/52667/mnist_784.arff"
+    
+    # Check cache
+    if (savedir / npy_filename).exists():
+        data = np.load(savedir / npy_filename)
+    else:
+        print("Downloading MNIST...")
+        filepath = savedir / filename
+        _download(url, filepath)
+        
+        print("Parsing MNIST...")
+        # Basic ARFF parser for MNIST specifically
+        data = []
+        with open(filepath, 'r') as f:
+            for line in tqdm(f, total=70000+500): # approx lines
+                if line.startswith('@') or line == '\n': continue
+                # Parse csv line to integers
+                data.append([int(x) for x in line.strip().split(',')])
+        
+        data = np.array(data, dtype=np.uint8)
+        np.save(savedir / npy_filename, data)
+        filepath.unlink() # Delete ARFF to save space
 
-    meta = META[name]
-    filepath = savedir / meta.filename
+    # Split
+    X = data[:, :-1]
+    y = data[:, -1]
+    return X[:60000], y[:60000], X[60000:], y[60000:]
 
-    # Download the file.
+
+def _load_cifar(savedir):
+    """
+    Downloads the official python version from CS Toronto.
+    Format: N x 3072 (stored as [R, G, B] flattened).
+    We reshape to N x 32 x 32 x 3 (H, W, C).
+    """
+    filename = "cifar-10-python.tar.gz"
+    npy_filename = "cifar.npy"
+    url = "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
+
+    if (savedir / npy_filename).exists():
+        data_dict = np.load(savedir / npy_filename, allow_pickle=True).item()
+        return data_dict['X_train'], data_dict['y_train'], data_dict['X_test'], data_dict['y_test']
+
+    print("Downloading CIFAR-10...")
+    filepath = savedir / filename
+    _download(url, filepath)
+
+    print("Extracting CIFAR-10...")
+    X_train = []
+    y_train = []
+    X_test = None
+    y_test = None
+    with tarfile.open(filepath, "r:gz") as tar:
+        for member in tar.getmembers():
+            if "data_batch" in member.name:
+                batch = pickle.load(tar.extractfile(member), encoding='bytes')
+                X_train.append(batch[b'data'])
+                y_train.extend(batch[b'labels'])
+            elif "test_batch" in member.name:
+                batch = pickle.load(tar.extractfile(member), encoding='bytes')
+                X_test = batch[b'data']
+                y_test = batch[b'labels']
+
+    X_train = np.vstack(X_train)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
+
+    # Preprocess: Reshape to HWC (32, 32, 3)
+    # Original is N x 3072 (Channel, Row, Col) -> (N, 3, 32, 32)
+    def _reshape(data):
+        # N, C, H, W -> N, H, W, C
+        return data.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1)
+
+    X_train = _reshape(X_train)
+    X_test = _reshape(X_test)
+
+    # Save as compressed dictionary
+    save_dict = {
+        'X_train': X_train, 'y_train': y_train,
+        'X_test': X_test, 'y_test': y_test
+    }
+    np.save(savedir / npy_filename, save_dict)
+    
+    filepath.unlink() # Delete tar.gz
+    return X_train, y_train, X_test, y_test
+
+
+def _download(url, filepath):
     with open(filepath, "wb") as file:
-        session = requests.Session()
-        response = session.get(meta.url, stream=True)
+        response = requests.get(url, stream=True)
         response.raise_for_status()
-        for data in tqdm(response.iter_content(chunk_size=CHUNK_SIZE)):
-            file.write(data)
-
-    # Validate via sha256.
-    with open(filepath, "rb") as file:
-        hashed = hashlib.sha256(file.read()).hexdigest()
-
-    if not meta.sha256 == hashed:
-        errorfilepath = filepath.with_suffix("-sha256-error")
-        filepath.rename(errorfilepath)
-        raise ValueError(
-            f"Unexpected hash value. Saved file as {errorfilepath.resolve()}"
-        )
-
-
-def yield_data(savedir, name, datalen):
-    "A line at a time, yield data from a comma seperated arff file."
-    filepath = savedir / META[name].filename
-    with open(filepath, "r") as file:
-        while True:
-            line = file.readline()
-
-            if not line:
-                break
-
-            if line.startswith("@"):
-                continue
-
-            data = line.split(",")
-
-            if not len(data) == datalen:
-                continue
-
-            yield data
-
-
-def arff_to_npy(savedir, name):
-    meta = META[name]
-    result = np.zeros([meta.rows, meta.cols], meta.dtype)
-    for i, data in tqdm(
-        enumerate(yield_data(savedir, name, meta.cols)), total=meta.rows
-    ):
-        result[i, :] = data
-    assert i + 1 == result.shape[0], "Error converting data."
-    result = meta.preprocess(result)
-    np.save(savedir / meta.npy, result)
-    return result
-
-
-if __name__ == "__main__":
-    result = load_data("mnist", delete_intermediate_files=False)
-    for a in result:
-        print(a.shape)
-
-    result = load_data("cifar", delete_intermediate_files=False)
-    for a in result:
-        print(a.shape)
+        total_size = int(response.headers.get('content-length', 0))
+        
+        with tqdm(total=total_size, unit='B', unit_scale=True, desc=filepath.name) as bar:
+            for data in response.iter_content(chunk_size=CHUNK_SIZE):
+                file.write(data)
+                bar.update(len(data))

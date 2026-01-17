@@ -19,8 +19,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-import smallpebble.array_library as np
-
+import numpy as np
 
 def numgrads(
     func: Callable, args: list[np.ndarray], n: int = 1, delta: float = 1e-6

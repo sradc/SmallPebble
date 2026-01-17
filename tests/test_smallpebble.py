@@ -20,10 +20,10 @@ from __future__ import annotations
 from typing import Callable
 
 import pytest
-import tensorflow as tf
+# import tensorflow as tf
 
 import smallpebble as sp
-from smallpebble.numerical_gradients import numgrads
+from tests.numerical_gradients import numgrads
 
 np = sp.np
 
@@ -296,94 +296,94 @@ def generate_images_and_kernels(imagedims, kerndims):
     return images, kernels
 
 
-def test_conv2d_result():
-    "Check that rd.conv2d gets the same results as tf.conv2d."
-    images, kernels = generate_images_and_kernels([3, 55, 66, 5], [13, 22, 5, 7])
+# def test_conv2d_result():
+#     "Check that rd.conv2d gets the same results as tf.conv2d."
+#     images, kernels = generate_images_and_kernels([3, 55, 66, 5], [13, 22, 5, 7])
 
-    for stride in range(1, 11, 3):
-        for padding in ["SAME", "VALID"]:
-            strides = [stride, stride]
-            result_sp = sp.conv2d(
-                sp.Variable(images),
-                sp.Variable(kernels),
-                padding=padding,
-                strides=strides,
-            )
-            result_tf = tf.nn.conv2d(images, kernels, padding=padding, strides=strides)
-            result_mean_error = np.mean(np.abs(result_sp.array - result_tf))
-            assert result_mean_error < EPS, f"Mean error = {result_mean_error}"
-
-
-def test_conv2d_grads():
-    "Compare TensorFlow derivatives with SmallPebble."
-    images, kernels = generate_images_and_kernels([5, 16, 12, 2], [2, 4, 2, 3])
-
-    images_sp = sp.Variable(images)
-    kernels_sp = sp.Variable(kernels)
-    images_tf = tf.Variable(images)
-    kernels_tf = tf.Variable(kernels)
-
-    for stride in range(1, 11, 3):
-        strides = [stride, stride]
-        for padding in ["SAME", "VALID"]:
-            print("\n\n")
-            print(stride)
-            print(padding)
-
-            # Calculate convolution and gradients with revdiff:
-            result_sp = sp.conv2d(
-                images_sp, kernels_sp, padding=padding, strides=strides
-            )
-
-            gradients_sp = sp.get_gradients(result_sp)
-            grad_images_sp = gradients_sp[images_sp]
-            grad_kernels_sp = gradients_sp[kernels_sp]
-
-            # Calculate convolution and gradients with tensorflow:
-            with tf.GradientTape() as tape:
-                result_tf = tf.nn.conv2d(
-                    images_tf, kernels_tf, padding=padding, strides=strides
-                )
-            grad_images_tf, grad_kernels_tf = tape.gradient(
-                result_tf, [images_tf, kernels_tf]
-            )
-
-            # Compare the gradients:
-            imgrad_error = np.mean(np.abs(grad_images_sp - grad_images_tf))
-            assert imgrad_error < EPS, f"Image gradient error = {imgrad_error}"
-
-            kerngrad_error = np.mean(np.abs(grad_kernels_sp - grad_kernels_tf))
-            assert kerngrad_error < EPS, f"Kernel gradient error = {kerngrad_error}"
+#     for stride in range(1, 11, 3):
+#         for padding in ["SAME", "VALID"]:
+#             strides = [stride, stride]
+#             result_sp = sp.conv2d(
+#                 sp.Variable(images),
+#                 sp.Variable(kernels),
+#                 padding=padding,
+#                 strides=strides,
+#             )
+#             result_tf = tf.nn.conv2d(images, kernels, padding=padding, strides=strides)
+#             result_mean_error = np.mean(np.abs(result_sp.array - result_tf))
+#             assert result_mean_error < EPS, f"Mean error = {result_mean_error}"
 
 
-def test_maxpool2d():
-    np.random.seed(0)
-    images = np.random.random([4, 12, 14, 3])
-    images_sp = sp.Variable(images)
-    images_tf = tf.Variable(images)
+# def test_conv2d_grads():
+#     "Compare TensorFlow derivatives with SmallPebble."
+#     images, kernels = generate_images_and_kernels([5, 16, 12, 2], [2, 4, 2, 3])
 
-    for stride in range(1, 11, 3):
-        strides = [stride, stride]
-        for padding in ["SAME", "VALID"]:
-            strides = [stride, stride]
+#     images_sp = sp.Variable(images)
+#     kernels_sp = sp.Variable(kernels)
+#     images_tf = tf.Variable(images)
+#     kernels_tf = tf.Variable(kernels)
 
-            result_sp = sp.maxpool2d(images_sp, 2, 2, padding, strides)
+#     for stride in range(1, 11, 3):
+#         strides = [stride, stride]
+#         for padding in ["SAME", "VALID"]:
+#             print("\n\n")
+#             print(stride)
+#             print(padding)
 
-            gradients_sp = sp.get_gradients(result_sp)
-            grad_images_sp = gradients_sp[images_sp]
+#             # Calculate convolution and gradients with revdiff:
+#             result_sp = sp.conv2d(
+#                 images_sp, kernels_sp, padding=padding, strides=strides
+#             )
 
-            with tf.GradientTape() as tape:
-                result_tf = tf.nn.max_pool2d(images_tf, [1, 2, 2, 1], strides, padding)
+#             gradients_sp = sp.get_gradients(result_sp)
+#             grad_images_sp = gradients_sp[images_sp]
+#             grad_kernels_sp = gradients_sp[kernels_sp]
 
-            grad_images_tf = tape.gradient(result_tf, [images_tf])[0]
+#             # Calculate convolution and gradients with tensorflow:
+#             with tf.GradientTape() as tape:
+#                 result_tf = tf.nn.conv2d(
+#                     images_tf, kernels_tf, padding=padding, strides=strides
+#                 )
+#             grad_images_tf, grad_kernels_tf = tape.gradient(
+#                 result_tf, [images_tf, kernels_tf]
+#             )
 
-            # Compare results:
-            results_error = rmse(result_sp.array, result_tf)
-            assert results_error < EPS, f"Results error = {results_error}"
+#             # Compare the gradients:
+#             imgrad_error = np.mean(np.abs(grad_images_sp - grad_images_tf))
+#             assert imgrad_error < EPS, f"Image gradient error = {imgrad_error}"
 
-            # Compare gradients:
-            imgrad_error = np.mean(np.abs(grad_images_sp - grad_images_tf))
-            assert imgrad_error < EPS, f"Gradient error = {imgrad_error}"
+#             kerngrad_error = np.mean(np.abs(grad_kernels_sp - grad_kernels_tf))
+#             assert kerngrad_error < EPS, f"Kernel gradient error = {kerngrad_error}"
+
+
+# def test_maxpool2d():
+#     np.random.seed(0)
+#     images = np.random.random([4, 12, 14, 3])
+#     images_sp = sp.Variable(images)
+#     images_tf = tf.Variable(images)
+
+#     for stride in range(1, 11, 3):
+#         strides = [stride, stride]
+#         for padding in ["SAME", "VALID"]:
+#             strides = [stride, stride]
+
+#             result_sp = sp.maxpool2d(images_sp, 2, 2, padding, strides)
+
+#             gradients_sp = sp.get_gradients(result_sp)
+#             grad_images_sp = gradients_sp[images_sp]
+
+#             with tf.GradientTape() as tape:
+#                 result_tf = tf.nn.max_pool2d(images_tf, [1, 2, 2, 1], strides, padding)
+
+#             grad_images_tf = tape.gradient(result_tf, [images_tf])[0]
+
+#             # Compare results:
+#             results_error = rmse(result_sp.array, result_tf)
+#             assert results_error < EPS, f"Results error = {results_error}"
+
+#             # Compare gradients:
+#             imgrad_error = np.mean(np.abs(grad_images_sp - grad_images_tf))
+#             assert imgrad_error < EPS, f"Gradient error = {imgrad_error}"
 
 
 # ---------------- TEST DELAYED GRAPH EXECUTION

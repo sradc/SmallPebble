@@ -1,0 +1,41 @@
+[project]
+name = "smallpebble"
+version = "3.0.0"
+description = "A minimalist deep learning library written from scratch in Python"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=2.2.6",
+    "requests>=2.32.5",  # TODO, remove requests / data fetching
+]
+authors = [
+  {name = "Sidney Radcliffe", email = "sidneyradcliffe@gmail.com"},
+]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+classifiers=[
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/sradc/smallpebble"
+Repository = "https://github.com/sradc/smallpebble"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."] 
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+    "ipywidgets>=8.1.8",
+    "matplotlib>=3.10.8",
+    "nbconvert>=7.16.6",
+    "pytest>=9.0.2",
+    "tqdm>=4.67.1",
+]
