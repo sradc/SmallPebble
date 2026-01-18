@@ -11,6 +11,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10", "3.13"]
+        numpy-version: ["1.26.4", "latest"]
 
     steps:
     - uses: actions/checkout@v4
@@ -25,6 +26,10 @@ jobs:
 
     - name: Install dependencies
       run: make install
+
+    - name: Install specific NumPy version
+      if: matrix.numpy-version != 'latest'
+      run: uv add "numpy==${{ matrix.numpy-version }}"
 
     - name: Pre-commit checks
       run: make pre-commit
