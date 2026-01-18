@@ -3,6 +3,8 @@
 
 [![](https://github.com/sradc/smallpebble/workflows/Python%20package/badge.svg)](https://github.com/sradc/smallpebble/commits/) [![PyPI](https://img.shields.io/pypi/v/smallpebble)](https://pypi.org/project/smallpebble/)
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sradc/SmallPebble/blob/master/README.ipynb)
+
 [_This README is generated from a notebook you can run!_](https://github.com/sradc/SmallPebble/blob/master/README.ipynb)
 
 SmallPebble is a minimalist autodiff and deep learning library written from scratch in Python.
@@ -16,7 +18,7 @@ SmallPebble demonstrates the key concepts under the hood of deep learning framew
 without the complexity of performance optimizations or GPU support.
 
 ### Recommended Learning Path:
-- Read [this](https://sidsite.com/posts/autodiff/) introduction to autodiff, by the author.
+- Read [this](https://sidsite.com/posts/autodiff/) introduction to autodiff by the author (featured in university teaching materials).
     - It presents a similar autodiff implementation to SmallPebble, but simplified, on scalars.
 - Read the source code: [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py).
 - Take a look at the `tests/` folder — this library was written test-first.
@@ -56,6 +58,12 @@ When `get_gradients` is called, autodiff is performed by traversing the graph ba
 - Example models created and trained using SmallPebble.
 - A brief guide to using the library.
 
+
+
+```python
+# Uncomment if you are running in Google Colab:
+# !pip install smallpebble
+```
 
 
 ```python
@@ -99,7 +107,7 @@ plt.show()
 
 
     
-![png](README_files/README_4_0.png)
+![png](README_files/README_5_0.png)
     
 
 
@@ -174,15 +182,15 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
-    100%|██████████| 300/300 [00:01<00:00, 167.16it/s]
+    100%|██████████| 300/300 [00:01<00:00, 162.52it/s]
 
 
-    Final validation accuracy: 0.9265000000000001
+    Final validation accuracy: 0.9404999999999999
 
 
 
     
-![png](README_files/README_6_2.png)
+![png](README_files/README_7_2.png)
     
 
 
@@ -223,7 +231,7 @@ plt.show()
 
 
     
-![png](README_files/README_9_0.png)
+![png](README_files/README_10_0.png)
     
 
 
@@ -329,17 +337,17 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
-    100%|██████████| 100/100 [01:29<00:00,  1.12it/s]
+    100%|██████████| 100/100 [01:25<00:00,  1.16it/s]
 
-    Final validation accuracy: 0.3046875
-
-
-    
-
+    Final validation accuracy: 0.4078125
 
 
     
-![png](README_files/README_13_3.png)
+
+
+
+    
+![png](README_files/README_14_3.png)
     
 
 
@@ -388,14 +396,14 @@ print('grad_c:\n', grad_c)
 ```
 
     y.array:
-     [[1.09829335 1.32112703]
-     [1.14665006 1.25725779]]
+     [[0.62621773 0.36851717]
+     [0.74844439 0.34224531]]
     grad_a:
-     [[0.73716667 0.47067797]
-     [0.26389477 0.74855958]]
+     [[0.49485935 0.90088666]
+     [0.46869585 0.30129425]]
     grad_b:
-     [[0.20604917 0.77858459]
-     [0.75882252 0.4042342 ]]
+     [[0.22305125 0.14295044]
+     [0.49628274 0.34023314]]
     grad_c:
      [2. 2.]
 
@@ -415,7 +423,7 @@ print(lazy_node)
 print(lazy_node.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x11c2e77f0>
+    <smallpebble.smallpebble.Lazy object at 0x107dd6f20>
     3
 
 
@@ -427,7 +435,7 @@ print(y)
 print(y.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x11c2e78b0>
+    <smallpebble.smallpebble.Lazy object at 0x107d4f700>
     10
 
 
@@ -446,8 +454,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[1.50373476 1.35984723]
-     [3.24364326 3.43139332]]
+     [[1.90104377 1.3847642 ]
+     [4.40123297 3.3039883 ]]
 
 
 You can use .run() as many times as you like. 
@@ -462,8 +470,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[15.03734756 13.59847232]
-     [32.43643256 34.31393316]]
+     [[19.01043768 13.847642  ]
+     [44.0123297  33.03988297]]
 
 
 Finally, let's compute gradients:
@@ -497,8 +505,8 @@ for learnable in learnables:
     print(learnable)
 ```
 
-    <smallpebble.smallpebble.Variable object at 0x11c28eda0>
-    <smallpebble.smallpebble.Variable object at 0x11c504a00>
+    <smallpebble.smallpebble.Variable object at 0x107d4f670>
+    <smallpebble.smallpebble.Variable object at 0x1101819f0>
 
 
 ---
