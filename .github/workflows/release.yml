@@ -41,6 +41,7 @@ jobs:
           semantic-release version
 
       - name: Publish to PyPI
+        if: hashFiles('dist/*') != ''  
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages_dir: dist/
