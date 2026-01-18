@@ -32,6 +32,7 @@ dev = [
     "pre-commit>=4.5.1",
     "pytest>=9.0.2",
     "ruff>=0.14.13",
+    "tensorflow>=2.20.0",
 ]
 
 [project.urls]
