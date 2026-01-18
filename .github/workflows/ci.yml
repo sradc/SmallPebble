@@ -1,4 +1,4 @@
-name: Python package
+name: CI
 
 on:
   push:
@@ -6,37 +6,39 @@ on:
   pull_request:
 
 jobs:
-  test:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.13
+      - run: make install
+      - name: Pre-commit checks
+        run: make pre-commit
+      - name: Verify README
+        run: make check-readme
+
+  tests:
+    name: Test Py${{ matrix.python-version }} / NP${{ matrix.numpy-version }}
+    needs: quality
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.13"]
         numpy-version: ["1.26.4", "latest"]
-
     steps:
     - uses: actions/checkout@v4
-
     - name: Install uv
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-    
     - name: Set up Python ${{ matrix.python-version }}
       run: uv python install ${{ matrix.python-version }}
-
     - name: Install dependencies
       run: make install
-
     - name: Install specific NumPy version
-      if: matrix.numpy-version != 'latest'
+      if: matrix.numpy-version != 'latest'  # only downgrade if needed
       run: uv add "numpy==${{ matrix.numpy-version }}"
-
-    - name: Pre-commit checks
-      run: make pre-commit
-
     - name: Test with pytest
       run: make test
-
-    - name: Verify README is up to date
-      if: matrix.python-version == '3.12'  # only needs to run once
-      run: make check-readme
