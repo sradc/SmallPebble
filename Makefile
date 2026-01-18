@@ -1,5 +1,8 @@
 .PHONY: test readme pre-commit check-readme
 
+install:
+	uv sync --all-extras
+
 test:
 	uv run pytest
 

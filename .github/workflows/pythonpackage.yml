@@ -24,7 +24,7 @@ jobs:
       run: uv python install ${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: uv sync
+      run: make install
 
     - name: Pre-commit checks
       run: make pre-commit
