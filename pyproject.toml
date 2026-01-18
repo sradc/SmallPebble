@@ -24,7 +24,6 @@ examples = [
     "tqdm>=4.67.1",
     "matplotlib>=3.10.8",
     "ipykernel>=7.1.0",
-    "ipywidgets>=8.1.8",
 ]
 
 [dependency-groups]
