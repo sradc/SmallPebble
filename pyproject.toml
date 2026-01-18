@@ -1,6 +1,6 @@
 [project]
 name = "smallpebble"
-version = "3.0.2"
+version = "3.0.3"
 description = "A minimalist deep learning library written from scratch in Python"
 readme = "README.md"
 requires-python = ">=3.10"

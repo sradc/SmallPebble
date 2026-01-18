@@ -2,6 +2,31 @@
 
 <!-- version list -->
 
+## v3.0.3 (2026-01-18)
+
+### Bug Fixes
+
+- Test ci/cd pipeline configuration
+  ([`d1fd1ea`](https://github.com/sradc/SmallPebble/commit/d1fd1ea30b849335f8e0ad264aabdbb2f160a417))
+
+### Continuous Integration
+
+- Add condition to release to only run on main, and a safety check to avoid running on semrelease
+  commits
+  ([`e49a23b`](https://github.com/sradc/SmallPebble/commit/e49a23bcc8ccc65fe356f643d034b3e632d5a2a6))
+
+- Simplify into one file
+  ([`ed0f69f`](https://github.com/sradc/SmallPebble/commit/ed0f69fc9889a985c495db9888bef84c36caea43))
+
+- Update release.yml to only run after tests
+  ([`c417751`](https://github.com/sradc/SmallPebble/commit/c417751c39c3620d2f23b77c704f6b2d8a265a83))
+
+### Documentation
+
+- Update readme notes on download location
+  ([`371e782`](https://github.com/sradc/SmallPebble/commit/371e78282bf79211ea81cdad65468136118d25fa))
+
+
 ## v3.0.2 (2026-01-18)
 
 ### Bug Fixes
