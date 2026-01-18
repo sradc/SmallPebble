@@ -1943,37 +1943,42 @@ source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+
+[package.optional-dependencies]
+examples = [
+    { name = "ipykernel" },
+    { name = "ipywidgets" },
+    { name = "matplotlib" },
     { name = "requests" },
+    { name = "tqdm" },
 ]
 
 [package.dev-dependencies]
 dev = [
-    { name = "ipykernel" },
-    { name = "ipywidgets" },
-    { name = "matplotlib" },
     { name = "nbconvert" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
-    { name = "tqdm" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "ipykernel", marker = "extra == 'examples'", specifier = ">=7.1.0" },
+    { name = "ipywidgets", marker = "extra == 'examples'", specifier = ">=8.1.8" },
+    { name = "matplotlib", marker = "extra == 'examples'", specifier = ">=3.10.8" },
     { name = "numpy", specifier = ">=2.2.6" },
-    { name = "requests", specifier = ">=2.32.5" },
+    { name = "requests", marker = "extra == 'examples'", specifier = ">=2.32.5" },
+    { name = "tqdm", marker = "extra == 'examples'", specifier = ">=4.67.1" },
 ]
+provides-extras = ["examples"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "ipykernel", specifier = ">=7.1.0" },
-    { name = "ipywidgets", specifier = ">=8.1.8" },
-    { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "nbconvert", specifier = ">=7.16.6" },
     { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "ruff", specifier = ">=0.14.13" },
-    { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
 [[package]]
