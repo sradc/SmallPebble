@@ -55,7 +55,7 @@ When `get_gradients` is called, autodiff is performed by traversing the graph ba
 ```python
 import matplotlib.pyplot as plt
 import numpy as np
-from tqdm.auto import tqdm
+from tqdm import tqdm
 import smallpebble as sp
 from smallpebble.datasets import load_data
 ```
@@ -168,11 +168,10 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
+    100%|██████████| 300/300 [00:01<00:00, 162.70it/s]
 
-      0%|          | 0/300 [00:00<?, ?it/s]
 
-
-    Final validation accuracy: 0.932
+    Final validation accuracy: 0.925
 
 
 
@@ -324,16 +323,17 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
+    100%|██████████| 100/100 [01:21<00:00,  1.22it/s]
 
-      0%|          | 0/100 [00:00<?, ?it/s]
+    Final validation accuracy: 0.32890625
 
 
-    Final validation accuracy: 0.3109375
+    
 
 
 
     
-![png](README_files/README_13_2.png)
+![png](README_files/README_13_3.png)
     
 
 
@@ -382,14 +382,14 @@ print('grad_c:\n', grad_c)
 ```
 
     y.array:
-     [[1.02460932 0.76807643]
-     [1.27444666 0.59825055]]
+     [[0.60782    0.42564186]
+     [0.7267007  0.58429177]]
     grad_a:
-     [[0.68886369 0.86822053]
-     [0.65274075 0.58280287]]
+     [[0.56427934 0.10335591]
+     [0.59113928 0.88864797]]
     grad_b:
-     [[0.47640529 0.28786036]
-     [0.88552101 0.13743994]]
+     [[0.29640298 0.22455233]
+     [0.48403953 0.20464652]]
     grad_c:
      [2. 2.]
 
@@ -409,7 +409,7 @@ print(lazy_node)
 print(lazy_node.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x116f3ccd0>
+    <smallpebble.smallpebble.Lazy object at 0x10ddb36d0>
     3
 
 
@@ -421,7 +421,7 @@ print(y)
 print(y.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x116f3f8e0>
+    <smallpebble.smallpebble.Lazy object at 0x10ddb31c0>
     10
 
 
@@ -440,8 +440,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[2.53093351 0.90162336]
-     [5.61788051 1.97511828]]
+     [[1.17299296 0.4071    ]
+     [3.22816648 1.14885566]]
 
 
 You can use .run() as many times as you like. 
@@ -456,8 +456,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[25.30933514  9.01623359]
-     [56.17880514 19.75118278]]
+     [[11.72992963  4.07099996]
+     [32.2816648  11.4885566 ]]
 
 
 Finally, let's compute gradients:
@@ -491,6 +491,6 @@ for learnable in learnables:
     print(learnable)
 ```
 
-    <smallpebble.smallpebble.Variable object at 0x116bfb520>
-    <smallpebble.smallpebble.Variable object at 0x116bf9690>
+    <smallpebble.smallpebble.Variable object at 0x10dd7acb0>
+    <smallpebble.smallpebble.Variable object at 0x10dd78130>
 
