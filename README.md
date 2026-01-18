@@ -7,6 +7,8 @@ It runs automatic differentiation on NumPy arrays.
 
 **The core implementation is in a single file: [smallpebble.py](https://github.com/sradc/SmallPebble/blob/master/smallpebble/smallpebble.py)**
 
+**The only dependency of the core implementation is NumPy.**
+
 SmallPebble demonstrates the key concepts under the hood of deep learning frameworks,
 without the complexity of performance optimizations or GPU support.
 
@@ -22,9 +24,12 @@ Clone the repository and install it locally:
 ```bash
 git clone https://github.com/sradc/smallpebble.git
 cd smallpebble
-pip install -e .
-# or if using uv: 
-# uv sync
+
+# Install core library
+pip install .
+
+# Or, to run the examples/notebooks
+pip install ".[examples]"
 ```
 
 ### Highlights
@@ -49,7 +54,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm.notebook import tqdm
 import smallpebble as sp
-from smallpebble.misc import load_data
+from smallpebble.datasets import load_data
 ```
 
 ## Training a neural network to classify handwritten digits (MNIST)
@@ -164,7 +169,7 @@ plt.show()
       0%|          | 0/300 [00:00<?, ?it/s]
 
 
-    Final validation accuracy: 0.9240000000000002
+    Final validation accuracy: 0.932
 
 
 
@@ -270,7 +275,7 @@ Train the model.
 
 
 ```python
-NUM_ITERS = 200
+NUM_ITERS = 100
 BATCH_SIZE = 128
 
 eval_batch = sp.batch(X_eval, y_eval, BATCH_SIZE)
@@ -317,10 +322,10 @@ plt.show()
 ```
 
 
-      0%|          | 0/200 [00:00<?, ?it/s]
+      0%|          | 0/100 [00:00<?, ?it/s]
 
 
-    Final validation accuracy: 0.4546875
+    Final validation accuracy: 0.3109375
 
 
 
@@ -374,14 +379,14 @@ print('grad_c:\n', grad_c)
 ```
 
     y.array:
-     [[0.67751752 0.53667291]
-     [0.95736224 0.32719343]]
+     [[1.02460932 0.76807643]
+     [1.27444666 0.59825055]]
     grad_a:
-     [[0.43351263 0.30266758]
-     [0.49193784 0.35351856]]
+     [[0.68886369 0.86822053]
+     [0.65274075 0.58280287]]
     grad_b:
-     [[0.29523246 0.79647735]
-     [0.82903098 0.08935429]]
+     [[0.47640529 0.28786036]
+     [0.88552101 0.13743994]]
     grad_c:
      [2. 2.]
 
@@ -401,7 +406,7 @@ print(lazy_node)
 print(lazy_node.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x10fe1d780>
+    <smallpebble.smallpebble.Lazy object at 0x116f3ccd0>
     3
 
 
@@ -413,7 +418,7 @@ print(y)
 print(y.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x10fe1ec50>
+    <smallpebble.smallpebble.Lazy object at 0x116f3f8e0>
     10
 
 
@@ -432,8 +437,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[1.83154742 0.7896439 ]
-     [4.32128663 1.67688029]]
+     [[2.53093351 0.90162336]
+     [5.61788051 1.97511828]]
 
 
 You can use .run() as many times as you like. 
@@ -448,8 +453,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[18.31547424  7.89643903]
-     [43.21286628 16.76880292]]
+     [[25.30933514  9.01623359]
+     [56.17880514 19.75118278]]
 
 
 Finally, let's compute gradients:
@@ -483,6 +488,6 @@ for learnable in learnables:
     print(learnable)
 ```
 
-    <smallpebble.smallpebble.Variable object at 0x11b881510>
-    <smallpebble.smallpebble.Variable object at 0x11b881de0>
+    <smallpebble.smallpebble.Variable object at 0x116bfb520>
+    <smallpebble.smallpebble.Variable object at 0x116bf9690>
 

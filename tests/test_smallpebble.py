@@ -18,66 +18,18 @@ Check results, and derivatives against numerical derivatives.
 
 from __future__ import annotations
 
-from typing import Callable
-
+import numpy as np
 import pytest
 
-# import tensorflow as tf
+# import tensorflow as tf  # TODO: deal with these tests
 import smallpebble as sp
-from tests.numerical_gradients import numgrads
-
-np = sp.np
-
-EPS = 1e-6
+from smallpebble.gradcheck import EPS, check_grad, numgrads, rmse
 
 
 @pytest.fixture(autouse=True)
 def set_np_seed():
     np.random.seed(0)
     yield
-
-
-class NumericalError(Exception):
-    pass
-
-
-def compare_results(
-    args: list[np.ndarray],
-    sp_func: Callable,
-    np_func: Callable,
-    delta: int = 1,
-    eps: float = EPS,
-) -> None:
-    """Compares:
-    - SmallPebble function output against NumPy function output.
-    - SmallPebble gradient against numerical gradient.
-
-    Notes:
-    `delta` can be 1 for linear functions,
-    but should otherwise be a very small number.
-
-    `eps` may need to be adjusted, in the case of
-    inaccurate numerical approximations.
-    """
-    # Compute SmallPebble results
-    args_sp = [sp.Variable(a) for a in args]
-    y_sp = sp_func(*args_sp)
-    grads_sp = sp.get_gradients(y_sp)
-    grads_sp = [grads_sp[var] for var in args_sp]
-
-    # Compute numerical results
-    y_np = np_func(*args)
-    grads_np = numgrads(np_func, args, n=1, delta=delta)
-
-    # Compare output values
-    error = rmse(y_sp.array, y_np)
-    if error > eps:
-        raise NumericalError("function output rmse:", error)
-
-    # Compare gradient values
-    for i, (spval, npval) in enumerate(zip(grads_sp, grads_np)):
-        if error > eps:
-            raise NumericalError(f"arg[{i}] gradient rmse:", error)
 
 
 # ---------------- TEST OPS
@@ -88,7 +40,7 @@ def test_add():
         np.random.random([20, 20]),
         np.random.random([20, 20]),
     ]
-    compare_results(args, sp.add, np.add)
+    check_grad(args, sp.add, np.add)
 
 
 def test_add_broadcast():
@@ -96,7 +48,7 @@ def test_add_broadcast():
         np.random.random([4, 2, 3]),
         np.random.random([3, 4, 1, 2, 3]),
     ]
-    compare_results(args, sp.add, np.add)
+    check_grad(args, sp.add, np.add)
 
 
 def test_add_broadcast_scalar():
@@ -104,7 +56,7 @@ def test_add_broadcast_scalar():
         np.array(4.0),
         np.random.random([3, 4, 1, 2, 3]),
     ]
-    compare_results(args, sp.add, np.add)
+    check_grad(args, sp.add, np.add)
 
 
 def test_add_operator():
@@ -113,7 +65,7 @@ def test_add_operator():
         np.random.random([20, 20]),
     ]
     func = lambda a, b: a + b
-    compare_results(args, func, func)
+    check_grad(args, func, func)
 
 
 def test_add_at():
@@ -127,18 +79,18 @@ def test_add_at():
         np.add.at(result, indices, b)
         return result
 
-    compare_results(args, sp_func, np_func)
+    check_grad(args, sp_func, np_func)
 
 
 def test_div_broadcast_operator():
     args = [np.random.random([3, 2, 5]) * 1000, np.random.random([4, 3, 1, 5]) * 2 + 1]
     func = lambda a, b: a / b
-    compare_results(args, func, func, delta=1e-5)
+    check_grad(args, func, func, delta=1e-5)
 
 
 def test_exponential():
     args = [np.random.random([3, 2, 5])]
-    compare_results(args, sp.exp, np.exp, delta=1e-5)
+    check_grad(args, sp.exp, np.exp, delta=1e-5)
 
 
 def test_expand_dims():
@@ -146,7 +98,7 @@ def test_expand_dims():
     axis = [3]
     sp_func = lambda a: sp.expand_dims(a, axis)
     np_func = lambda a: np.expand_dims(a, axis)
-    compare_results(args, sp_func, np_func)
+    check_grad(args, sp_func, np_func)
 
 
 def test_getitem():
@@ -154,20 +106,20 @@ def test_getitem():
     indices = (slice(None), slice(1), (0, 2))
     sp_func = lambda a: sp.getitem(a, indices)
     np_func = lambda a: a[indices]
-    compare_results(args, sp_func, np_func)
+    check_grad(args, sp_func, np_func)
 
 
 def test_getitem_dunder():
     args = [np.random.random([4, 5, 3])]
     func = lambda a: a[0, :, 0:2]
-    compare_results(args, func, func)
+    check_grad(args, func, func)
 
 
 def test_log():
     args = [
         np.random.random([3, 2, 5]) * 100 + 1,
     ]
-    compare_results(args, sp.log, np.log, delta=1e-5)
+    check_grad(args, sp.log, np.log, delta=1e-5)
 
 
 def test_leaky_relu():
@@ -175,23 +127,23 @@ def test_leaky_relu():
     alpha = 0.1
     sp_func = lambda a: sp.leaky_relu(a, alpha)
     np_func = lambda a: np.maximum(a, a * alpha)
-    compare_results(args, sp_func, np_func, delta=1e-5)
+    check_grad(args, sp_func, np_func, delta=1e-5)
 
 
 def test_matmul():
     args = [np.random.random([2, 5]), np.random.random([5, 9])]
-    compare_results(args, sp.matmul, np.matmul)
+    check_grad(args, sp.matmul, np.matmul)
 
 
 def test_matmul_broadcast():
     args = [np.random.random([2, 4, 3, 2, 5]), np.random.random([1, 3, 5, 9])]
-    compare_results(args, sp.matmul, np.matmul)
+    check_grad(args, sp.matmul, np.matmul)
 
 
 def test_matrix_transpose():
     args = [np.random.random([3, 2, 5])]
     np_func = lambda a: np.swapaxes(a, -2, -1)
-    compare_results(args, sp.matrix_transpose, np_func)
+    check_grad(args, sp.matrix_transpose, np_func)
 
 
 def test_maxax():
@@ -199,19 +151,19 @@ def test_maxax():
     axis = -2
     sp_func = lambda a: sp.maxax(a, axis)
     np_func = lambda a: np.max(a, axis, keepdims=True)
-    compare_results(args, sp_func, np_func, delta=1e-5)
+    check_grad(args, sp_func, np_func, delta=1e-5)
 
 
 def test_mul_broadcast_operator():
     args = [np.random.random([4, 1, 3, 2, 5]), np.random.random([5, 3, 1, 5])]
     func = lambda a, b: a * b
-    compare_results(args, func, func)
+    check_grad(args, func, func)
 
 
 def test_neg_operator():
     args = [np.random.random([5, 3, 1, 5])]
     func = lambda a: -a
-    compare_results(args, func, func)
+    check_grad(args, func, func)
 
 
 def test_pad():
@@ -219,7 +171,7 @@ def test_pad():
     pad_width = ((2, 1), (4, 4), (0, 1))
     sp_func = lambda a: sp.pad(a, pad_width)
     np_func = lambda a: np.pad(a, pad_width)
-    compare_results(args, sp_func, np_func)
+    check_grad(args, sp_func, np_func)
 
 
 def test_reshape():
@@ -227,7 +179,7 @@ def test_reshape():
     shape = (6, 5, 1)
     sp_func = lambda a: sp.reshape(a, shape)
     np_func = lambda a: a.reshape(shape)
-    compare_results(args, sp_func, np_func)
+    check_grad(args, sp_func, np_func)
 
 
 def test_setat():
@@ -243,24 +195,24 @@ def test_setat():
         result[indices] = b
         return result
 
-    compare_results(args, sp_func, np_func)
+    check_grad(args, sp_func, np_func)
 
 
 def test_softmax():
     args = [np.random.random([100, 10])]
     np_func = lambda a: np.exp(a) / np.sum(np.exp(a), axis=-1, keepdims=True)
-    compare_results(args, sp.softmax, np_func, delta=1e-6, eps=1e-9)
+    check_grad(args, sp.softmax, np_func, delta=1e-6, eps=1e-9)
 
 
 def test_square():
     args = [np.random.random([3, 2, 5])]
-    compare_results(args, sp.square, np.square)
+    check_grad(args, sp.square, np.square)
 
 
 def test_sub_broadcast_operator():
     args = [np.random.random([4, 2, 3]), np.random.random([4, 1, 2, 3])]
     func = lambda a, b: a - b
-    compare_results(args, func, func)
+    check_grad(args, func, func)
 
 
 def test_sum():
@@ -268,7 +220,7 @@ def test_sum():
     axis = (1, 3)
     sp_func = lambda a: sp.sum(a, axis)
     np_func = lambda a: np.sum(a, axis)
-    compare_results(args, sp_func, np_func)
+    check_grad(args, sp_func, np_func)
 
 
 def test_where():
@@ -279,7 +231,7 @@ def test_where():
     condition = args[0] > args[1]
     sp_func = lambda a, b: sp.where(condition, a, b)
     np_func = lambda a, b: np.where(condition, a, b)
-    compare_results(args, sp_func, np_func)
+    check_grad(args, sp_func, np_func)
 
 
 # ---------------- HIGHER OPS
@@ -499,11 +451,3 @@ def test_sgd_step():
         sp.sgd_step([a, b], gradients)
 
     assert np.all(np.diff(losses) < 0), "Not converging."
-
-
-# ---------------- UTIL
-
-
-def rmse(a: np.ndarray, b: np.ndarray):
-    "Root mean square error."
-    return np.sqrt(np.mean((a - b) ** 2))
