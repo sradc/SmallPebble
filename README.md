@@ -78,7 +78,7 @@ from smallpebble.datasets import load_data
 ```python
 "Load the dataset, and create a validation set."
 
-X_train, y_train, _, _ = load_data('mnist')  # load / download from openml.org
+X_train, y_train, _, _ = load_data('mnist')  # downloads from smallpebble github and is cached
 X_train = X_train/255  # normalize
 
 # Seperate out data for validation.
@@ -209,7 +209,7 @@ Use a subset of the data because CNNs are very slow on CPU.
 ```python
 "Load the CIFAR dataset."
 
-X_train, y_train, _, _ = load_data('cifar')  # load/download from openml.org
+X_train, y_train, _, _ = load_data('cifar')
 X_train = X_train/255  # normalize
 ```
 
