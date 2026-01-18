@@ -65,6 +65,6 @@ indent-style = "space"
 version_toml = ["pyproject.toml:project.version"]
 major_on_zero = false 
 branch = "main"
-upload_to_pypi = true
+upload_to_pypi = false
 upload_to_release = true
 build_command = "uv build"
