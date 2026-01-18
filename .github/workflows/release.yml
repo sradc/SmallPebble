@@ -13,6 +13,11 @@ jobs:
   release:
     runs-on: ubuntu-latest
     concurrency: release
+
+    environment:
+      name: pypi
+      url: https://pypi.org/p/smallpebble
+
     if: "!contains(github.event.head_commit.message, 'chore(release):')"
     
     steps:
@@ -20,14 +25,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Python Semantic Release
-        uses: python-semantic-release/python-semantic-release@v9.16.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Runs: version bump -> changelog -> git tag -> uv build -> publish to PyPI
-          
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          uv tool install python-semantic-release
+          semantic-release version
+
       - name: Publish to PyPI
-        if: steps.semantic-release.outputs.released == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages_dir: dist/
