@@ -2,6 +2,53 @@
 
 <!-- version list -->
 
+## v3.0.2 (2026-01-18)
+
+### Bug Fixes
+
+- Datasets now fetches from smallpebble repo release, simpler / more reliable / hopefully works in
+  colab unlike the prev code
+  ([`2e7004b`](https://github.com/sradc/SmallPebble/commit/2e7004b4a610ec03aaabd447f45b0e73ac248667))
+
+### Chores
+
+- Delete datasets_to_npz.ipynb, ds uploaded, nb no longer needed
+  ([`7c9bab4`](https://github.com/sradc/SmallPebble/commit/7c9bab4fddf69790f9e6d4ee7174540d568b4605))
+
+- Nb to convert datasets to npz files to add to release
+  ([`a1b6bee`](https://github.com/sradc/SmallPebble/commit/a1b6bee674dd9d604788263c18baa250708e97cd))
+
+### Continuous Integration
+
+- Another fix for numpy/tensorflow dep conflict
+  ([`322bdb3`](https://github.com/sradc/SmallPebble/commit/322bdb3b63de0b45bdc454d348666186fd4830fb))
+
+- Fix tensorflow/numpy deps, rename to test
+  ([`914038f`](https://github.com/sradc/SmallPebble/commit/914038fc12cc93e3da62d350866b351e232733bc))
+
+### Documentation
+
+- Add pypi badge and instructions to readme
+  ([`838d448`](https://github.com/sradc/SmallPebble/commit/838d448fe3c624fd7d95238a36691a098ef283dd))
+
+- Collab link and readme tweaks
+  ([`65016f7`](https://github.com/sradc/SmallPebble/commit/65016f7cb33d1433b17d6a53226d382cfebbc3c4))
+
+- Improve readme link at top of readme
+  ([`b4639b1`](https://github.com/sradc/SmallPebble/commit/b4639b1472c4580615c8751b2c569984875e7596))
+
+- Move readme badges to same line
+  ([`125fa6a`](https://github.com/sradc/SmallPebble/commit/125fa6a711074945ccdfc288f589905277fad914))
+
+- Readme tweaks, explain low cnn accuracy due to CPU time, add dates to footer
+  ([`155310b`](https://github.com/sradc/SmallPebble/commit/155310bc59b82d68889bf8bad2e9a439f01547d3))
+
+### Testing
+
+- Restore the tensorflow tests, dependency in dev group
+  ([`164522a`](https://github.com/sradc/SmallPebble/commit/164522a9816aa84918dd4b5cc686fdb7094ba44e))
+
+
 ## v3.0.1 (2026-01-18)
 
 ### Bug Fixes
