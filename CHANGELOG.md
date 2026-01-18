@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v3.0.4 (2026-01-18)
+
+### Bug Fixes
+
+- Again, test ci/cd pipeline configuration
+  ([`846c800`](https://github.com/sradc/SmallPebble/commit/846c80090e79fd4357ee4ef485beb0a0f56239ed))
+
+
 ## v3.0.3 (2026-01-18)
 
 ### Bug Fixes
