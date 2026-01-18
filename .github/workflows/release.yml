@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency: release
+    if: "!contains(github.event.head_commit.message, 'chore(release):')"
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Python Semantic Release
+        uses: python-semantic-release/python-semantic-release@v9.16.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Runs: version bump -> changelog -> git tag -> uv build -> publish to PyPI
+          
+      - name: Publish to PyPI
+        if: steps.semantic-release.outputs.released == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages_dir: dist/
