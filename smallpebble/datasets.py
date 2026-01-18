@@ -42,7 +42,7 @@ def _require_extras():
         )
 
 
-def load_data(name=Literal["mnist", "cifar"], savedir: Path | str = None):
+def load_data(name: Literal["mnist", "cifar"], savedir: Path | str = None):
     """
     Load 'mnist' or 'cifar'.
     Returns: X_train, y_train, X_test, y_test
