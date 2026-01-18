@@ -42,6 +42,6 @@ jobs:
       run: make install
     - name: Install specific NumPy version
       if: matrix.numpy-version != 'latest'  # only downgrade if needed
-      run: uv add "numpy==${{ matrix.numpy-version }}" tensorflow
+      run: uv remove tensorflow --group dev && uv add "numpy==${{ matrix.numpy-version }}" tensorflow
     - name: Test with pytest
       run: make test
