@@ -17,24 +17,37 @@ Minimalist data loader for SmallPebble.
 Loads MNIST (from OpenML) and CIFAR-10 (from CS.Toronto).
 """
 
-import pathlib
 import pickle
 import tarfile
+from pathlib import Path
+from typing import Literal
 
 import numpy as np
-import requests
-from tqdm import tqdm
 
-DEFAULT_SAVEDIR = pathlib.Path.home() / ".smallpebble"
+DEFAULT_SAVEDIR = Path.home() / ".smallpebble"
 CHUNK_SIZE = 1024 * 1024
 
 
-def load_data(name, savedir=None):
+def _require_extras():
+    """Lazy loader for optional dependencies."""
+    try:
+        import requests
+        from tqdm import tqdm
+
+        return requests, tqdm
+    except ImportError:
+        raise ImportError(
+            "Fetching datasets requires 'requests' and 'tqdm'. "
+            "Install them with: pip install 'smallpebble[examples]'"
+        )
+
+
+def load_data(name=Literal["mnist", "cifar"], savedir: Path | str = None):
     """
     Load 'mnist' or 'cifar'.
     Returns: X_train, y_train, X_test, y_test
     """
-    savedir = pathlib.Path(savedir) if savedir else DEFAULT_SAVEDIR
+    savedir = Path(savedir) if savedir else DEFAULT_SAVEDIR
     savedir.mkdir(parents=True, exist_ok=True)
 
     if name == "mnist":
@@ -46,6 +59,8 @@ def load_data(name, savedir=None):
 
 
 def _load_mnist(savedir):
+    _, tqdm = _require_extras()
+
     filename = "mnist_784.arff"
     npy_filename = "mnist.npy"
     url = "https://www.openml.org/data/download/52667/mnist_784.arff"
@@ -144,6 +159,8 @@ def _load_cifar(savedir):
 
 
 def _download(url, filepath):
+    requests, tqdm = _require_extras()
+
     with open(filepath, "wb") as file:
         response = requests.get(url, stream=True)
         response.raise_for_status()
