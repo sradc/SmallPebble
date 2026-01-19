@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v3.0.5 (2026-01-19)
+
+### Bug Fixes
+
+- Datasets.py, verify datasets, switch to tempfile pattern, rerun readme
+  ([`f5d6651`](https://github.com/sradc/SmallPebble/commit/f5d6651e0f0d6aeffca12284aeadf2ce336ca0f4))
+
+- Type hint of conv2d strides and change default to immutable
+  ([`d21e41f`](https://github.com/sradc/SmallPebble/commit/d21e41f0bb3644f6a2003fa53a677df28194531f))
+
+### Continuous Integration
+
+- Chore use `packages-dir` instead of `packages_dir` as warned
+  ([`8b82140`](https://github.com/sradc/SmallPebble/commit/8b821401744bc18dddb886ef238fbf9c08929a3a))
+
+### Documentation
+
+- Update links in nb to use 'main'
+  ([`e166224`](https://github.com/sradc/SmallPebble/commit/e166224a19527fd57c71b3545ecefc247f2e1245))
+
+
 ## v3.0.4 (2026-01-18)
 
 ### Bug Fixes
