@@ -125,7 +125,7 @@ def conv2d(
     images: Variable,
     kernels: Variable,
     padding: str = "SAME",
-    strides: list[int, int] = [1, 1],
+    strides: tuple[int, int] = (1, 1),
 ) -> Variable:
     """2D convolution, with same api as tf.nn.conv2d [1].
 
