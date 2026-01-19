@@ -91,7 +91,7 @@ y_eval = y_train[50_000:60_000]
     Downloading mnist.npz...
 
 
-    100%|██████████| 11.5M/11.5M [00:01<00:00, 9.96MB/s]
+    100%|██████████| 11.5M/11.5M [00:00<00:00, 31.9MB/s]
 
 
 
@@ -186,17 +186,15 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
-    100%|██████████| 300/300 [00:01<00:00, 181.15it/s]
-
-    Final validation accuracy: 0.937
+    100%|██████████| 300/300 [00:01<00:00, 189.88it/s]
 
 
-    
+    Final validation accuracy: 0.9155000000000001
 
 
 
     
-![png](README_files/README_7_3.png)
+![png](README_files/README_7_2.png)
     
 
 
@@ -216,7 +214,7 @@ X_train = X_train/255  # normalize
     Downloading cifar.npz...
 
 
-    100%|██████████| 170M/170M [00:10<00:00, 15.6MB/s] 
+    100%|██████████| 170M/170M [00:04<00:00, 37.3MB/s] 
 
 
 
@@ -349,9 +347,9 @@ plt.plot(validation_acc)
 plt.show()
 ```
 
-    100%|██████████| 100/100 [01:25<00:00,  1.17it/s]
+    100%|██████████| 100/100 [01:22<00:00,  1.22it/s]
 
-    Final validation accuracy: 0.30859375
+    Final validation accuracy: 0.3390625
 
 
     
@@ -408,14 +406,14 @@ print('grad_c:\n', grad_c)
 ```
 
     y.array:
-     [[0.19573773 0.14808445]
-     [0.48469778 0.23763213]]
+     [[0.43457083 1.14068148]
+     [0.63550632 0.97019613]]
     grad_a:
-     [[0.29455868 0.08111483]
-     [0.94845834 0.46473159]]
+     [[0.25686699 0.46522723]
+     [0.68233942 0.03916393]]
     grad_b:
-     [[0.03258389 0.11831607]
-     [0.31478232 0.21333793]]
+     [[0.77756233 0.38989307]
+     [0.58719396 0.27840733]]
     grad_c:
      [2. 2.]
 
@@ -435,7 +433,7 @@ print(lazy_node)
 print(lazy_node.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x111d69540>
+    <smallpebble.smallpebble.Lazy object at 0x10e785960>
     3
 
 
@@ -447,7 +445,7 @@ print(y)
 print(y.run())
 ```
 
-    <smallpebble.smallpebble.Lazy object at 0x111d697b0>
+    <smallpebble.smallpebble.Lazy object at 0x10e785930>
     10
 
 
@@ -466,8 +464,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[1.0711246  1.23975384]
-     [2.18044448 2.90373876]]
+     [[2.24308885 1.05636046]
+     [5.26999297 2.85349506]]
 
 
 You can use .run() as many times as you like. 
@@ -482,8 +480,8 @@ print('result.array:\n', result.array)
 ```
 
     result.array:
-     [[10.71124596 12.39753836]
-     [21.8044448  29.03738757]]
+     [[22.43088846 10.5636046 ]
+     [52.6999297  28.53495056]]
 
 
 Finally, let's compute gradients:
@@ -517,8 +515,8 @@ for learnable in learnables:
     print(learnable)
 ```
 
-    <smallpebble.smallpebble.Variable object at 0x111d69420>
-    <smallpebble.smallpebble.Variable object at 0x111d6ace0>
+    <smallpebble.smallpebble.Variable object at 0x10ec685e0>
+    <smallpebble.smallpebble.Variable object at 0x10e8be050>
 
 
 ---

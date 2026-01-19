@@ -17,13 +17,23 @@ Minimalist data loader for SmallPebble.
 Downloads pre-processed .npz files from GitHub Releases.
 """
 
+import hashlib
 from pathlib import Path
 from typing import Literal
 
 import numpy as np
 
 DEFAULT_SAVEDIR = Path.home() / ".smallpebble"
-BASE_URL = "https://github.com/sradc/smallpebble/releases/download/datasets/"
+DATASETS = {
+    "mnist": {
+        "url": "https://github.com/sradc/smallpebble/releases/download/datasets/mnist.npz",
+        "sha256": "14f88124e6bae0c4bbe34adf973c4de4babb37dc2ea068318fbe3d97ee9f3c5e",
+    },
+    "cifar": {
+        "url": "https://github.com/sradc/smallpebble/releases/download/datasets/cifar.npz",
+        "sha256": "57c1d901bb9a722adb7e1fea732053e5ebe5bfebfd81fea010171be52b881146",
+    },
+}
 
 
 def load_data(name: Literal["mnist", "cifar"], savedir: Path | str = None):
@@ -31,37 +41,50 @@ def load_data(name: Literal["mnist", "cifar"], savedir: Path | str = None):
     Load 'mnist' or 'cifar'. Downloads data if not present.
     Returns: X_train, y_train, X_test, y_test
     """
-    if name not in ["mnist", "cifar"]:
-        raise ValueError("Dataset must be 'mnist' or 'cifar'")
-
+    if name not in DATASETS:
+        raise ValueError(f"Dataset must be one of {list(DATASETS.keys())}")
     savedir = Path(savedir) if savedir else DEFAULT_SAVEDIR
     savedir.mkdir(parents=True, exist_ok=True)
-
     filepath = savedir / f"{name}.npz"
     if not filepath.exists():
-        _download(BASE_URL + f"{name}.npz", filepath)
-
+        info = DATASETS[name]
+        _download(info["url"], filepath, info["sha256"])
     with np.load(filepath) as data:
         return (data["X_train"], data["y_train"], data["X_test"], data["y_test"])
 
 
-def _download(url, filepath):
+def _download(url, filepath, expected_sha256):
     print(f"Downloading {filepath.name}...")
     try:
         import requests
         from tqdm import tqdm
     except ImportError:
         raise ImportError("Please install 'requests' and 'tqdm' to download datasets.")
-
+    temp_filepath = filepath.with_suffix(".part")
     try:
         with requests.get(url, stream=True) as r:
+            # Download
             r.raise_for_status()
             total = int(r.headers.get("content-length", 0))
-            with open(filepath, "wb") as f, tqdm(total=total, unit="B", unit_scale=True) as bar:
+            sha256_hasher = hashlib.sha256()
+            with (
+                open(temp_filepath, "wb") as f,
+                tqdm(total=total, unit="B", unit_scale=True) as bar,
+            ):
                 for chunk in r.iter_content(chunk_size=1024 * 1024):
                     f.write(chunk)
+                    sha256_hasher.update(chunk)
                     bar.update(len(chunk))
-    except Exception as e:
-        if filepath.exists():
-            filepath.unlink()  # Cleanup partial file
-        raise e
+            # Verify Hash
+            calculated_hash = sha256_hasher.hexdigest()
+            if calculated_hash != expected_sha256:
+                raise ValueError(
+                    f"Security check failed! Hash mismatch for {filepath.name}.\n"
+                    f"Expected: {expected_sha256}\n"
+                    f"Got:      {calculated_hash}"
+                )
+        temp_filepath.rename(filepath)
+    finally:
+        if temp_filepath.exists():
+            print(f"Something went wrong, deleting '{temp_filepath}'")
+            temp_filepath.unlink()
